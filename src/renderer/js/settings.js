@@ -102,7 +102,7 @@
         </div>`
       this.syncControls()
       timeAPI.app.getVersion().then((v) => {
-        const el = root.querySelector('#set-version')
+        const el = this.root.querySelector('#set-version')
         if (el) el.textContent = v
       })
     },
