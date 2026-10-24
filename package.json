@@ -1,0 +1,43 @@
+{
+  "name": "time-assistant",
+  "productName": "时光助手",
+  "version": "1.0.8",
+  "description": "番茄钟 · 闹钟提醒 · 待办 · 日历 · 专注统计（苹果风格桌面时间管理）",
+  "main": "src/main.js",
+  "author": "local",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "icon": "node scripts/make-icon.mjs",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.local.time-assistant",
+    "productName": "时光助手",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}
