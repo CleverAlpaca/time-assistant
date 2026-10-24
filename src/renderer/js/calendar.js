@@ -179,9 +179,15 @@
           ...Array(Math.min(evCount, 3)).fill('<span class="cal-dot" style="background:var(--accent)"></span>'),
           ...Array(Math.min(tdCount, 2)).fill('<span class="cal-dot" style="background:var(--purple)"></span>'),
         ].join('')
+        // 农历/节气/节日：节日(红) > 节气(紫) > 农历日(灰)
+        const li = Lunar.dayInfo(key)
+        const lunarCls = li.type === 'festival' ? ' festival' : li.type === 'term' ? ' term' : ''
         html += `
           <div class="cal-day${other ? ' other' : ''}${key === todayKey ? ' today' : ''}${key === this.selected ? ' selected' : ''}" data-date="${key}" ${heat}>
-            <div class="cal-num">${d.getDate()}</div>
+            <div class="cal-top">
+              <div class="cal-num">${d.getDate()}</div>
+              ${li.label ? `<span class="cal-lunar${lunarCls}">${li.label}</span>` : ''}
+            </div>
             <div class="cal-dots">${dots}</div>
           </div>`
       }
@@ -229,8 +235,14 @@
             .join('')
         : `<div class="text-3" style="font-size:12px">没有到期的待办</div>`
 
+      const li = Lunar.dayInfo(key)
+      const lunarLine = li.lunarFull
+        ? `${li.lunarFull}${li.term && li.type !== 'term' ? ` · ${li.term}` : ''}${li.festival ? ` · <b class="cal-panel-festival">${li.festival}</b>` : ''}`
+        : ''
+
       panel.innerHTML = `
         <div class="cal-panel-date">${dayName} · 周${wd}</div>
+        ${lunarLine ? `<div class="cal-panel-lunar">${lunarLine}</div>` : ''}
         <div class="cal-panel-section"><h4>日程</h4>${eventHtml}</div>
         <div class="cal-panel-section"><h4>到期待办</h4>${todoHtml}</div>
         <div class="cal-panel-section">
