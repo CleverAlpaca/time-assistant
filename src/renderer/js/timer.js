@@ -14,7 +14,7 @@
       if (st.phase === 'focus') return taskTitle ? `任务 · ${taskTitle}` : '专注时间'
       return st.phase === 'short' ? '短休一下 ☕' : '好好长休 🛋️'
     }
-    return st.mode === 'countdown' ? '倒计时' : '正计时'
+    return st.mode === 'countdown' ? st.label || '倒计时' : '正计时'
   }
 
   App.pages.timer = {
@@ -47,7 +47,7 @@
           <div class="timer-controls">
             <button class="btn-round btn-round-sub" id="tm-reset">重置</button>
             <button class="btn-round btn-round-main" id="tm-main">开始</button>
-            <button class="btn-round btn-round-sub" id="tm-skip">跳过</button>
+            <button class="btn-round btn-round-sub" id="tm-third" title="跳过当前段">跳过</button>
           </div>
           <div class="timer-stats" id="tm-stats"></div>
         </div>`
@@ -64,7 +64,11 @@
 
       root.querySelector('#tm-main').onclick = () => timeAPI.timer.control((this.st && this.st.running) ? 'pause' : 'start')
       root.querySelector('#tm-reset').onclick = () => timeAPI.timer.control('reset')
-      root.querySelector('#tm-skip').onclick = () => timeAPI.timer.control('skip')
+      root.querySelector('#tm-third').onclick = () => {
+        // 倒计时模式下第三颗按钮是「新增」（自定义时长与备注）；番茄钟保持「跳过」
+        if (this.st && this.st.mode === 'countdown') this.openCustomCountdown()
+        else timeAPI.timer.control('skip')
+      }
 
       this._taskW = Widgets.select({
         options: [{ value: '', label: '不关联任务' }],
@@ -141,9 +145,58 @@
       else label = st.remainingMs != null && st.remainingMs < st.durationMs ? '继续' : '开始'
       main.textContent = label
       root.querySelector('#tm-reset').textContent = isStopwatch ? '停止记录' : '重置'
-      root.querySelector('#tm-skip').style.display = isStopwatch ? 'none' : ''
+      const third = root.querySelector('#tm-third')
+      if (isStopwatch) {
+        third.style.display = 'none'
+      } else {
+        third.style.display = ''
+        const isCd = st.mode === 'countdown'
+        third.textContent = isCd ? '新增' : '跳过'
+        third.disabled = isCd && st.running
+        third.title = isCd ? '自定义倒计时时长与备注' : '跳过当前段'
+      }
 
       this.renderTasks()
+    },
+
+    // 倒计时「新增」：自定义时长与备注（备注覆盖环形下方的「倒计时」文字）
+    openCustomCountdown() {
+      const st = this.st
+      if (!st || st.mode !== 'countdown' || st.running) return
+      const min0 = Math.floor(st.durationMs / 60_000)
+      const sec0 = Math.round((st.durationMs % 60_000) / 1000)
+      const body = App.el(`
+        <div>
+          <div class="form-row"><label>时长</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="input" id="fm-cd-min" type="number" min="0" max="599" step="1" value="${min0}" style="width:84px">
+              <span class="text-2">分</span>
+              <input class="input" id="fm-cd-sec" type="number" min="0" max="59" step="1" value="${sec0}" style="width:84px">
+              <span class="text-2">秒</span>
+            </div>
+          </div>
+          <div class="form-row"><label>备注</label>
+            <input class="input" id="fm-cd-label" maxlength="12" placeholder="留空则显示「倒计时」" value="${App.esc(st.label || '')}">
+          </div>
+        </div>`)
+      App.modal({
+        title: '自定义倒计时',
+        body,
+        actions: [
+          {
+            label: '保存',
+            onClick: (close) => {
+              const min = Math.max(0, Math.floor(+body.querySelector('#fm-cd-min').value || 0))
+              const sec = Math.max(0, Math.floor(+body.querySelector('#fm-cd-sec').value || 0))
+              const ms = min * 60_000 + sec * 1000
+              if (ms <= 0) return App.toast({ title: '请输入倒计时时长' })
+              timeAPI.timer.control('countdownDuration', ms)
+              timeAPI.timer.control('countdownLabel', body.querySelector('#fm-cd-label').value.trim() || null)
+              close()
+            },
+          },
+        ],
+      })
     },
 
     renderTasks() {

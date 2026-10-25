@@ -17,6 +17,7 @@ class TimerEngine {
     this.lastTick = null
     this.cycleCount = 0 // 本轮已完成专注数（用于长休节奏）
     this.task = { id: null, title: null }
+    this.label = null // 倒计时自定义备注（覆盖「倒计时」文字显示）
     this.segmentStart = null
 
     this.applyPhaseDefaults()
@@ -55,6 +56,7 @@ class TimerEngine {
       cycleCount: this.cycleCount,
       taskId: this.task.id,
       taskTitle: this.task.title,
+      label: this.label,
       ...extra,
     }
   }
@@ -93,6 +95,9 @@ class TimerEngine {
           this.durationMs = arg
           this.remaining = null
         }
+        break
+      case 'countdownLabel':
+        if (this.mode === 'countdown') this.label = (typeof arg === 'string' && arg.trim()) || null
         break
       case 'task':
         this.task = { id: arg?.id ?? null, title: arg?.title ?? null }
@@ -177,7 +182,10 @@ class TimerEngine {
       if (this.durationMs >= 60_000) {
         this.logSession({ start: this.segmentStart, end: now, durationMs: this.durationMs, completed: true })
       }
-      this.notify('倒计时结束', `时长 ${Math.round(this.durationMs / 60_000)} 分钟`)
+      const mins = Math.floor(this.durationMs / 60_000)
+      const secs = Math.round((this.durationMs % 60_000) / 1000)
+      const durTxt = secs > 0 ? (mins > 0 ? `${mins} 分 ${secs} 秒` : `${secs} 秒`) : `${mins} 分钟`
+      this.notify('倒计时结束', this.label ? `「${this.label}」 ${durTxt}` : `时长 ${durTxt}`)
       this.segmentStart = null
     }
     // 正计时不会自然结束
@@ -216,7 +224,10 @@ class TimerEngine {
     this.elapsedMs = 0
     this.lastTick = null
     this.segmentStart = null
-    if (mode !== 'countdown') this.durationMs = 0
+    if (mode !== 'countdown') {
+      this.durationMs = 0
+      this.label = null
+    }
     this.applyPhaseDefaults()
   }
 
