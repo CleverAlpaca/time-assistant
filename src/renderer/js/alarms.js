@@ -181,6 +181,14 @@
               weekdays: a.repeat === 'weekly' ? a.weekdays : null,
               enabled: true,
               lastFiredKey: existing ? existing.lastFiredKey : null,
+            }).then((saved) => {
+              // 新建闹钟默认开启：等同打开开关，弹出距下次响铃的倒计时气泡
+              if (!existing && saved) {
+                setTimeout(() => {
+                  const row = document.querySelector(`.alarm-item[data-id="${saved.id}"] .switch`)
+                  showAlarmPop(row || document.querySelector('#al-add'), saved)
+                }, 90) // 等列表按新数据重渲染完成，再锚定到新行
+              }
             })
             close()
           },
@@ -249,6 +257,9 @@
         openAlarmModal(alarm)
       } else if (e.target.closest('.al-del')) {
         App.confirmDlg(`删除闹钟「${alarm.title}」？`).then((ok) => ok && Data.remove('alarms', alarm.id))
+      } else {
+        // 点击闹钟卡片本体 = 编辑
+        openAlarmModal(alarm)
       }
     },
   }

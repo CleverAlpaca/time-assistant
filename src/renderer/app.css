@@ -1003,3 +1003,6 @@ html[data-theme='dark'] .mini-window {
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
+
+/* 闹钟页：页头与 640px 卡片列表对齐（新建按钮右缘 = 卡片右缘） */
+#page-alarms .page-header { max-width: 640px; }
