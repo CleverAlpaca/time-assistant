@@ -19,6 +19,7 @@ class TimerEngine {
     this.task = { id: null, title: null }
     this.label = null // 倒计时自定义备注（覆盖「倒计时」文字显示）
     this.segmentStart = null
+    this.saved = {} // 各模式的冻结状态：切换模式时暂停并保存，切回恢复（计时不清空）
 
     this.applyPhaseDefaults()
   }
@@ -221,22 +222,43 @@ class TimerEngine {
   setMode(mode) {
     if (!['pomodoro', 'countdown', 'stopwatch'].includes(mode)) return
     if (mode === this.mode) return
-    this.abandonLog()
+    // 冻结当前模式：暂停但不丢弃进度，也不记中断日志（段未结束，切回可继续）
+    this.pause()
+    this.saved[this.mode] = {
+      phase: this.phase,
+      remaining: this.remaining,
+      elapsedMs: this.elapsedMs,
+      durationMs: this.durationMs,
+      label: this.label,
+      segmentStart: this.segmentStart,
+      cycleCount: this.cycleCount,
+    }
     this.mode = mode
-    this.phase = 'focus'
-    this.running = false
-    this.remaining = null
-    this.elapsedMs = 0
-    this.lastTick = null
-    this.segmentStart = null
-    if (mode !== 'countdown') {
+    const s = this.saved[mode]
+    if (s) {
+      // 恢复该模式上次冻结的状态（暂停态，可按「继续」接着跑）
+      this.phase = s.phase
+      this.remaining = s.remaining
+      this.elapsedMs = s.elapsedMs
+      this.durationMs = s.durationMs
+      this.label = s.label
+      this.segmentStart = s.segmentStart
+      this.cycleCount = s.cycleCount
+    } else {
+      // 首次进入该模式：全新状态
+      this.phase = 'focus'
+      this.remaining = null
+      this.elapsedMs = 0
       this.durationMs = 0
       this.label = null
+      this.applyPhaseDefaults()
     }
-    this.applyPhaseDefaults()
+    this.endsAt = null
+    this.lastTick = null
+    this.running = false
   }
 
-  // 中断/重置时：专注段已进行 ≥60s 则以 completed:false 计入统计
+  // 中断/重置时：专注段已进行 ≥60s 则以 completed:false 计入统计（暂停态按剩余量折算）
   abandonLog() {
     if (!this.segmentStart) return
     const now = Date.now()
@@ -248,8 +270,12 @@ class TimerEngine {
       return
     }
     const isFocusish = this.mode === 'countdown' || this.phase === 'focus'
-    if (!isFocusish || !this.running) return
-    const elapsed = this.durationMs - Math.max(0, this.endsAt - now)
+    if (!isFocusish) return
+    const elapsed = this.running
+      ? this.durationMs - Math.max(0, this.endsAt - now)
+      : this.remaining != null
+        ? this.durationMs - this.remaining
+        : 0
     if (elapsed >= 60_000) {
       this.logSession({ start: this.segmentStart, end: now, durationMs: elapsed, completed: false })
     }
