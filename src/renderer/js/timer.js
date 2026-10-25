@@ -77,12 +77,15 @@
               <div class="ring-sub" id="tm-sub">专注时间</div>
             </div>
           </div>
-          <div class="cycle-dots" id="tm-dots"></div>
-          <div class="timer-task" id="tm-task-row">
-            <span class="text-2" style="font-size:12px;flex:none">当前任务</span>
-            <span id="tm-task-host" style="flex:1;display:flex;min-width:0"></span>
+          <!-- 固定高度区带：圆点/任务行/时长项绝对定位其中，切换模式时控制按钮与统计卡位置不变 -->
+          <div class="timer-under">
+            <div class="cycle-dots" id="tm-dots"></div>
+            <div class="timer-task" id="tm-task-row">
+              <span class="text-2" style="font-size:12px;flex:none">当前任务</span>
+              <span id="tm-task-host" style="flex:1;display:flex;min-width:0"></span>
+            </div>
+            <div class="dur-chips" id="tm-durs"></div>
           </div>
-          <div class="dur-chips" id="tm-durs"></div>
           <div class="timer-controls">
             <button class="btn-round btn-round-sub" id="tm-reset">重置</button>
             <button class="btn-round btn-round-main" id="tm-main">开始</button>

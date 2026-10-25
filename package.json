@@ -1,7 +1,7 @@
 {
   "name": "time-assistant",
   "productName": "时光助手",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "番茄钟 · 闹钟提醒 · 待办 · 日历 · 专注统计（苹果风格桌面时间管理）",
   "main": "src/main.js",
   "author": "local",

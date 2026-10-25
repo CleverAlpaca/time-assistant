@@ -528,8 +528,9 @@ input[type='number'].input { width: 84px; text-align: center; }
   white-space: nowrap;
 }
 
+.timer-under { position: relative; height: 100px; width: 100%; }
 .timer-task {
-  margin-top: 20px;
+  position: absolute; top: 49px; left: 0; right: 0;
   display: flex; align-items: center; gap: 10px;
   width: 100%;
 }
@@ -567,7 +568,7 @@ input[type='number'].input { width: 84px; text-align: center; }
 .btn-round-sub:hover { background: var(--bg-hover); color: var(--text); }
 .btn-round-sub:disabled { opacity: 0.45; pointer-events: none; }
 
-.cycle-dots { margin-top: 20px; display: flex; gap: 8px; align-items: center; }
+.cycle-dots { position: absolute; top: 20px; left: 0; right: 0; justify-content: center; display: flex; gap: 8px; align-items: center; }
 .cycle-dot {
   width: 9px; height: 9px;
   border-radius: 50%;
@@ -576,7 +577,7 @@ input[type='number'].input { width: 84px; text-align: center; }
 }
 .cycle-dot.done { background: var(--accent); box-shadow: 0 0 8px var(--accent-soft); }
 
-.dur-chips { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
+.dur-chips { position: absolute; top: 18px; left: 0; right: 0; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .dur-chip {
   padding: 6px 14px;
   border-radius: 16px;
