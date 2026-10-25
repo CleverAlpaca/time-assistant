@@ -263,6 +263,13 @@
       this.root.querySelector('#cal-grid').innerHTML = html
       this.renderPicker()
       this.renderPanel()
+
+      // 法定节假日：查看的年份本地无数据时在线补齐（主进程负责缓存与拉取），到位后重渲染一次
+      if (window.HolidaySync) {
+        HolidaySync.ensureYear(this.view.getFullYear()).then((changed) => {
+          if (changed) this.render()
+        })
+      }
     },
 
     // 同步年月面板：年份下拉与当前月高亮

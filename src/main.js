@@ -15,6 +15,7 @@ const path = require('path')
 const { Store } = require('./lib/store')
 const { TimerEngine } = require('./lib/timer')
 const { AlarmScheduler } = require('./lib/alarms')
+const { HolidaySync } = require('./lib/holidays')
 
 let mainWindow = null
 let miniWindow = null
@@ -23,6 +24,7 @@ let quitting = false
 let store = null
 let engine = null
 let scheduler = null
+let holidaySync = null
 
 const ICON = path.join(__dirname, '..', 'assets', 'icon.png')
 const TRAY_ICON = path.join(__dirname, '..', 'assets', 'tray.png') // 32px 托盘/通知专用，16px 下仍清晰
@@ -264,6 +266,13 @@ if (!app.requestSingleInstanceLock()) {
     powerMonitor.on('resume', () => scheduler.tick())
     nativeTheme.on('updated', broadcastTheme)
 
+    // 法定节假日在线同步：预热当年与次年（官方每年 11 月底左右公布次年安排）
+    holidaySync = new HolidaySync(store.dir)
+    const now = new Date()
+    for (const y of [now.getFullYear(), now.getFullYear() + 1]) {
+      holidaySync.getYear(y).catch(() => {})
+    }
+
     registerIpc()
   })
 }
@@ -313,6 +322,7 @@ function registerIpc() {
   })
   ipcMain.handle('app:openDataFolder', () => shell.openPath(store.dir))
   ipcMain.handle('app:getVersion', () => app.getVersion())
+  ipcMain.handle('holiday:getYear', (_e, year) => holidaySync ? holidaySync.getYear(year) : Promise.resolve(null))
   ipcMain.handle('theme:state', () => ({ source: store.getSettings().theme, effective: effectiveTheme() }))
   ipcMain.handle('mini:toggle', () => {
     store.setSettings({ miniWindow: !store.getSettings().miniWindow })

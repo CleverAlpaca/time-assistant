@@ -28,6 +28,9 @@ const api = {
   alarm: {
     snooze: (id, min) => ipcRenderer.invoke('alarm:snooze', id, min),
   },
+  holiday: {
+    getYear: (year) => ipcRenderer.invoke('holiday:getYear', year),
+  },
   app: {
     getAutostart: () => ipcRenderer.invoke('app:autostart:get'),
     setAutostart: (v) => ipcRenderer.invoke('app:autostart:set', v),

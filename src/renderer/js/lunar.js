@@ -86,15 +86,33 @@
     },
   }
 
-  /** 某公历日期的法定节假日状态：'rest' 放假 | 'work' 调休上班 | null 普通日 */
+  // 在线同步的动态节假日表（{ rest: ['MM-DD'], work: ['MM-DD'] }，按年）
+  const DYNAMIC_HOLIDAYS = {}
+
+  /** 注入某年的在线数据；返回是否接受 */
+  function setDynamicHolidays(year, data) {
+    if (!Number.isInteger(+year) || !data || !Array.isArray(data.rest) || !data.rest.length) return false
+    DYNAMIC_HOLIDAYS[+year] = { rest: data.rest, work: Array.isArray(data.work) ? data.work : [] }
+    return true
+  }
+
+  /** 某公历日期的法定节假日状态：'rest' 放假 | 'work' 调休上班 | null 普通日
+   *  静态表（人工核对的官方原文）优先，动态表（holiday-sync 在线拉取）补后续年份 */
   function holidayOf(dateKey) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey || '')
     if (!m) return null
-    const y = HOLIDAYS[+m[1]]
-    if (!y) return null
     const md = m[2] + '-' + m[3]
-    if (y.rest.includes(md)) return 'rest'
-    if (y.work.includes(md)) return 'work'
+    const st = HOLIDAYS[+m[1]]
+    if (st) {
+      if (st.rest.includes(md)) return 'rest'
+      if (st.work.includes(md)) return 'work'
+      return null
+    }
+    const dy = DYNAMIC_HOLIDAYS[+m[1]]
+    if (dy) {
+      if (dy.rest.includes(md)) return 'rest'
+      if (dy.work.includes(md)) return 'work'
+    }
     return null
   }
 
@@ -218,8 +236,8 @@
     }
   }
 
-  global.Lunar = { solar2lunar, termOf, dayInfo, holidayOf, TERMS }
+  global.Lunar = { solar2lunar, termOf, dayInfo, holidayOf, setDynamicHolidays, TERMS }
 
   // node 环境下暴露用于锚点测试
-  if (typeof module !== 'undefined' && module.exports) module.exports = { solar2lunar, termOf, dayInfo, holidayOf }
+  if (typeof module !== 'undefined' && module.exports) module.exports = { solar2lunar, termOf, dayInfo, holidayOf, setDynamicHolidays }
 })(typeof window !== 'undefined' ? window : globalThis)
