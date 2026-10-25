@@ -208,6 +208,9 @@
         <div class="alarm-list" id="al-list"></div>`
       root.querySelector('#al-add').onclick = () => openAlarmModal(null)
       root.querySelector('#al-list').addEventListener('click', (e) => this._onClick(e))
+      // 开关用 change 事件：label 的激活行为会产生两次 click 派发（滑块 + 转发到 checkbox），
+      // 委派 click 会把其中一次误判成「点卡片编辑」
+      root.querySelector('#al-list').addEventListener('change', (e) => this._onToggle(e))
       Data.on('alarms', () => this.render())
       this.render()
     },
@@ -243,17 +246,27 @@
         .join('')
     },
 
-    _onClick(e) {
+    // 开关切换（change 事件，状态翻转只派发一次）
+    _onToggle(e) {
+      if (!e.target.closest('.al-toggle')) return
       const item = e.target.closest('.alarm-item')
       if (!item) return
       const alarm = Data.alarms.find((a) => a.id === item.dataset.id)
       if (!alarm) return
-      if (e.target.closest('.al-toggle')) {
-        const turningOn = !alarm.enabled
-        Data.save('alarms', { ...alarm, enabled: !alarm.enabled })
-        if (turningOn) showAlarmPop(e.target.closest('.switch'), alarm)
-        else if (alarmPop && alarmPop.alarmId === alarm.id) closeAlarmPop()
-      } else if (e.target.closest('.al-edit')) {
+      const turningOn = e.target.checked
+      if (!!alarm.enabled === turningOn) return // 状态未变（重复派发），跳过
+      Data.save('alarms', { ...alarm, enabled: turningOn })
+      if (turningOn) showAlarmPop(item.querySelector('.switch'), alarm)
+      else if (alarmPop && alarmPop.alarmId === alarm.id) closeAlarmPop()
+    },
+
+    _onClick(e) {
+      const item = e.target.closest('.alarm-item')
+      if (!item) return
+      if (e.target.closest('.switch')) return // 开关走 change 事件，避免双派发误触编辑
+      const alarm = Data.alarms.find((a) => a.id === item.dataset.id)
+      if (!alarm) return
+      if (e.target.closest('.al-edit')) {
         openAlarmModal(alarm)
       } else if (e.target.closest('.al-del')) {
         App.confirmDlg(`删除闹钟「${alarm.title}」？`).then((ok) => ok && Data.remove('alarms', alarm.id))
