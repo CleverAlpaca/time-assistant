@@ -40,6 +40,63 @@
     return `下次提醒：${day} ${d.getHours()}:${DU.pad(d.getMinutes())}`
   }
 
+  // ---- 开启闹钟时的倒计时气泡（玻璃风，每秒跳动，6 秒后自动消失）----
+  let alarmPop = null
+
+  function closeAlarmPop() {
+    if (!alarmPop) return
+    clearInterval(alarmPop.tick)
+    clearTimeout(alarmPop.hide)
+    document.removeEventListener('mousedown', alarmPop.onDown, true)
+    alarmPop.el.remove()
+    alarmPop = null
+  }
+
+  function showAlarmPop(anchorEl, alarm) {
+    closeAlarmPop()
+    const el = App.el('<div class="wpop alarm-pop"><div class="alarm-pop-when"></div><div class="alarm-pop-cap">距响铃还有</div><div class="alarm-pop-time"></div></div>')
+    document.body.appendChild(el)
+    const whenEl = el.querySelector('.alarm-pop-when')
+    const timeEl = el.querySelector('.alarm-pop-time')
+    const update = () => {
+      const d = nextOccurrence(alarm)
+      if (!d) {
+        whenEl.textContent = '该闹钟没有有效的触发时间'
+        timeEl.textContent = '--:--'
+        return
+      }
+      whenEl.textContent = '下次响铃 · ' + nextText(alarm).replace('下次提醒：', '')
+      const sec = Math.max(0, Math.ceil((d - Date.now()) / 1000))
+      const hh = Math.floor(sec / 3600)
+      const mm = Math.floor((sec % 3600) / 60)
+      const ss = sec % 60
+      timeEl.textContent = hh > 0 ? `${hh}:${DU.pad(mm)}:${DU.pad(ss)}` : `${DU.pad(mm)}:${DU.pad(ss)}`
+    }
+    update()
+    // 定位：锚定开关下方、右缘对齐并夹在视口内，放不下则翻到上方
+    const r = anchorEl.getBoundingClientRect()
+    el.style.visibility = 'hidden'
+    const pw = el.offsetWidth
+    const ph = el.offsetHeight
+    const left = Math.min(Math.max(8, r.right - pw), window.innerWidth - pw - 8)
+    let top = r.bottom + 8
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 8)
+    el.style.left = left + 'px'
+    el.style.top = top + 'px'
+    el.style.visibility = ''
+    const onDown = (e) => {
+      if (!el.contains(e.target)) closeAlarmPop()
+    }
+    document.addEventListener('mousedown', onDown, true)
+    alarmPop = {
+      el,
+      tick: setInterval(update, 1000),
+      hide: setTimeout(closeAlarmPop, 6000),
+      onDown,
+      alarmId: alarm.id,
+    }
+  }
+
   function openAlarmModal(existing) {
     const a = existing || { title: '', time: '08:00', repeat: 'daily', date: DU.dateKey(new Date()), weekdays: [1, 2, 3, 4, 5] }
     const dateW = Widgets.datePicker({ value: a.date || '', className: 'fill' })
@@ -184,7 +241,10 @@
       const alarm = Data.alarms.find((a) => a.id === item.dataset.id)
       if (!alarm) return
       if (e.target.closest('.al-toggle')) {
+        const turningOn = !alarm.enabled
         Data.save('alarms', { ...alarm, enabled: !alarm.enabled })
+        if (turningOn) showAlarmPop(e.target.closest('.switch'), alarm)
+        else if (alarmPop && alarmPop.alarmId === alarm.id) closeAlarmPop()
       } else if (e.target.closest('.al-edit')) {
         openAlarmModal(alarm)
       } else if (e.target.closest('.al-del')) {

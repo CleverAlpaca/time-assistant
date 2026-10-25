@@ -987,3 +987,19 @@ html[data-theme='dark'] .mini-window {
 /* 下拉标签省略号（长任务标题） */
 .wselect-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wselect-item { max-width: 264px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============ 闹钟开启倒计时气泡 ============ */
+.alarm-pop {
+  padding: 12px 18px;
+  text-align: center;
+  min-width: 150px;
+}
+.alarm-pop-when { font-size: 11px; color: var(--text-2); margin-bottom: 8px; }
+.alarm-pop-cap { font-size: 11px; color: var(--text-2); }
+.alarm-pop-time {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
