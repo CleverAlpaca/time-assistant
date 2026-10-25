@@ -933,3 +933,27 @@ html[data-theme='dark'] .mini-window {
 }
 .wdate-foot button:hover { background: var(--bg-hover); }
 .wdate-foot .wdate-clear { color: var(--danger); }
+
+/* 时间选择：时/分双列 */
+.wtime { position: relative; display: inline-flex; }
+.wtime.fill { flex: 1; display: flex; }
+.wtime.fill .wdate-btn { width: 100%; }
+.wtime-cols { display: flex; }
+.wtime-col { width: 64px; }
+.wtime-col + .wtime-col { margin-left: 6px; }
+.wtime-head { text-align: center; font-size: 11px; color: var(--text-3); padding: 2px 0 4px; }
+.wtime-list { max-height: 238px; overflow-y: auto; }
+.wtime-item {
+  display: block; width: 100%; padding: 6px 0;
+  font: inherit; font-size: 13px; text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  background: transparent; border: none; border-radius: 7px;
+  cursor: pointer; transition: background 0.1s;
+}
+.wtime-item:hover { background: var(--bg-hover); color: var(--text); }
+.wtime-item.cur { background: var(--accent-grad); color: #fff; font-weight: 600; }
+
+/* 下拉标签省略号（长任务标题） */
+.wselect-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wselect-item { max-width: 264px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

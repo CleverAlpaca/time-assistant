@@ -41,6 +41,7 @@
   function openTodoModal(existing) {
     const t = existing || { title: '', priority: 'none', dueDate: '', dueTime: '', remind: false }
     const dateW = Widgets.datePicker({ value: t.dueDate || '', className: 'fill' })
+    const timeW = Widgets.timePicker({ value: t.dueTime || '', className: 'fill', placeholder: '--:--' })
     const body = App.el(`
       <div>
         <div class="form-row"><label>标题</label>
@@ -56,7 +57,7 @@
         <div class="form-row"><label>截止日期（可选）</label>
           <div style="display:flex;gap:10px">
             <span id="fm-date" style="flex:1;display:flex"></span>
-            <input class="input" id="fm-time" type="time" value="${App.esc(t.dueTime || '')}" style="flex:1">
+            <span id="fm-time" style="flex:1;display:flex"></span>
           </div>
         </div>
         <div class="form-row" style="display:flex;align-items:center;justify-content:space-between">
@@ -66,6 +67,7 @@
         </div>
       </div>`)
     body.querySelector('#fm-date').appendChild(dateW.root)
+    body.querySelector('#fm-time').appendChild(timeW.root)
 
     const priSeg = body.querySelector('#fm-pri')
     const syncPri = () => priSeg.querySelectorAll('.seg-item').forEach((b) => b.classList.toggle('active', b.dataset.v === t.priority))
@@ -88,7 +90,7 @@
             const title = body.querySelector('#fm-title').value.trim()
             if (!title) return App.toast({ title: '请输入标题' })
             const dueDate = dateW.get() || null
-            const dueTime = body.querySelector('#fm-time').value || null
+            const dueTime = timeW.get() || null
             let remind = body.querySelector('#fm-remind').checked
             if (remind && (!dueDate || !dueTime)) {
               remind = false

@@ -43,12 +43,13 @@
   function openAlarmModal(existing) {
     const a = existing || { title: '', time: '08:00', repeat: 'daily', date: DU.dateKey(new Date()), weekdays: [1, 2, 3, 4, 5] }
     const dateW = Widgets.datePicker({ value: a.date || '', className: 'fill' })
+    const timeW = Widgets.timePicker({ value: a.time || '08:00' })
     const body = App.el(`
       <div>
         <div class="form-row"><label>标题</label>
           <input class="input" id="fm-title" placeholder="闹钟提醒" value="${App.esc(a.title)}"></div>
         <div class="form-row"><label>时间</label>
-          <input class="input" id="fm-time" type="time" value="${App.esc(a.time)}" required></div>
+          <span id="fm-time" style="display:flex"></span></div>
         <div class="form-row"><label>重复</label>
           <div class="seg" id="fm-repeat">
             <button class="seg-item" data-v="once">一次</button>
@@ -63,6 +64,7 @@
         </div>
       </div>`)
     body.querySelector('#fm-date').appendChild(dateW.root)
+    body.querySelector('#fm-time').appendChild(timeW.root)
 
     const repeatSeg = body.querySelector('#fm-repeat')
     const syncRepeatUI = () => {
@@ -102,7 +104,7 @@
           label: '保存',
           onClick: (close) => {
             const title = body.querySelector('#fm-title').value.trim() || '闹钟提醒'
-            const time = body.querySelector('#fm-time').value
+            const time = timeW.get()
             if (!time) return App.toast({ title: '请选择时间' })
             let date = null
             if (a.repeat === 'once') {

@@ -41,7 +41,7 @@
           <div class="cycle-dots" id="tm-dots"></div>
           <div class="timer-task" id="tm-task-row">
             <span class="text-2" style="font-size:12px;flex:none">当前任务</span>
-            <select class="input" id="tm-task"></select>
+            <span id="tm-task-host" style="flex:1;display:flex;min-width:0"></span>
           </div>
           <div class="dur-chips" id="tm-durs"></div>
           <div class="timer-controls">
@@ -66,10 +66,17 @@
       root.querySelector('#tm-reset').onclick = () => timeAPI.timer.control('reset')
       root.querySelector('#tm-skip').onclick = () => timeAPI.timer.control('skip')
 
-      root.querySelector('#tm-task').addEventListener('change', (e) => {
-        const opt = e.target.selectedOptions[0]
-        timeAPI.timer.control('task', { id: e.target.value || null, title: opt ? opt.dataset.title || null : null })
+      this._taskW = Widgets.select({
+        options: [{ value: '', label: '不关联任务' }],
+        value: '',
+        className: 'fill',
+        placeholder: '不关联任务',
+        onChange: (v) => {
+          const t = Data.todos.find((x) => x.id === v)
+          timeAPI.timer.control('task', { id: v || null, title: t ? t.title : null })
+        },
       })
+      root.querySelector('#tm-task-host').appendChild(this._taskW.root)
 
       Data.on('todos', () => this.renderTasks())
       Data.on('sessions', () => this.renderStats())
@@ -142,12 +149,16 @@
     renderTasks() {
       const st = this.st
       if (!st) return
-      const sel = this.root.querySelector('#tm-task')
       const open = Data.todos.filter((t) => !t.done)
-      sel.innerHTML =
-        '<option value="">不关联任务</option>' +
-        open.map((t) => `<option value="${t.id}" data-title="${App.esc(t.title)}">${App.esc(t.title)}</option>`).join('')
-      sel.value = st.taskId || ''
+      const opts = [{ value: '', label: '不关联任务' }]
+      for (const t of open) opts.push({ value: t.id, label: t.title })
+      // 已完成/已删除但仍在引擎状态里的任务也保留显示，避免选中项消失
+      if (st.taskId && !opts.some((o) => o.value === st.taskId)) {
+        const t = Data.todos.find((x) => x.id === st.taskId)
+        if (t) opts.push({ value: t.id, label: t.title })
+      }
+      this._taskW.setOptions(opts)
+      this._taskW.set(st.taskId || '')
     },
 
     renderStats() {

@@ -28,6 +28,18 @@
   function openEventModal(existing, defaultDate) {
     const ev = existing || { title: '', date: defaultDate, time: '09:00', remindMin: null }
     const dateW = Widgets.datePicker({ value: ev.date || '', className: 'fill' })
+    const timeW = Widgets.timePicker({ value: ev.time || '09:00', className: 'fill' })
+    const remindW = Widgets.select({
+      options: [
+        { value: '', label: '不提醒' },
+        { value: '0', label: '准时提醒' },
+        { value: '5', label: '提前 5 分钟' },
+        { value: '15', label: '提前 15 分钟' },
+        { value: '30', label: '提前 30 分钟' },
+      ],
+      value: ev.remindMin === null || ev.remindMin === undefined ? '' : String(ev.remindMin),
+      className: 'fill',
+    })
     const body = App.el(`
       <div>
         <div class="form-row"><label>标题</label>
@@ -35,21 +47,16 @@
         <div class="form-row"><label>日期与时间</label>
           <div style="display:flex;gap:10px">
             <span id="fm-date" style="flex:1;display:flex"></span>
-            <input class="input" id="fm-time" type="time" value="${App.esc(ev.time || '')}" style="flex:1">
+            <span id="fm-time" style="flex:1;display:flex"></span>
           </div>
         </div>
         <div class="form-row"><label>提醒</label>
-          <select class="input" id="fm-remind">
-            <option value="">不提醒</option>
-            <option value="0">准时提醒</option>
-            <option value="5">提前 5 分钟</option>
-            <option value="15">提前 15 分钟</option>
-            <option value="30">提前 30 分钟</option>
-          </select>
+          <span id="fm-remind" style="display:flex"></span>
         </div>
       </div>`)
     body.querySelector('#fm-date').appendChild(dateW.root)
-    body.querySelector('#fm-remind').value = ev.remindMin === null || ev.remindMin === undefined ? '' : String(ev.remindMin)
+    body.querySelector('#fm-time').appendChild(timeW.root)
+    body.querySelector('#fm-remind').appendChild(remindW.root)
 
     App.modal({
       title: existing ? '编辑日程' : '新建日程',
@@ -60,10 +67,10 @@
           onClick: (close) => {
             const title = body.querySelector('#fm-title').value.trim()
             const date = dateW.get()
-            const time = body.querySelector('#fm-time').value
+            const time = timeW.get()
             if (!title) return App.toast({ title: '请输入标题' })
             if (!date || !time) return App.toast({ title: '请选择日期和时间' })
-            const remindRaw = body.querySelector('#fm-remind').value
+            const remindRaw = remindW.get()
             Data.save('events', {
               ...existing,
               id: existing ? existing.id : undefined,

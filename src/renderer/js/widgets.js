@@ -46,6 +46,8 @@
 
   const CAL_SVG =
     '<svg class="wdate-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>'
+  const CLOCK_SVG =
+    '<svg class="wdate-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>'
 
   /**
    * 下拉选择
@@ -72,15 +74,23 @@
     pop.className = 'wselect-pop wpop'
     const list = document.createElement('div')
     list.className = 'wselect-list'
-    const items = o.options.map((opt) => {
-      const b = document.createElement('button')
-      b.type = 'button'
-      b.className = 'wselect-item'
-      b.dataset.v = opt.value
-      b.textContent = opt.label
-      list.appendChild(b)
-      return b
-    })
+    const items = []
+    const syncCur = () => items.forEach((b) => b.classList.toggle('cur', b.dataset.v === value))
+    const buildList = () => {
+      list.innerHTML = ''
+      items.length = 0
+      for (const opt of o.options) {
+        const b = document.createElement('button')
+        b.type = 'button'
+        b.className = 'wselect-item'
+        b.dataset.v = opt.value
+        b.textContent = opt.label
+        list.appendChild(b)
+        items.push(b)
+      }
+      syncCur()
+    }
+    buildList()
     pop.appendChild(list)
 
     const close = () => {
@@ -88,7 +98,7 @@
     }
     btn.addEventListener('click', () => {
       if (open) return closeActive()
-      items.forEach((b) => b.classList.toggle('cur', b.dataset.v === value))
+      syncCur()
       openPop(btn, pop, o.align === 'right', close)
       open = true
       const curEl = items.find((b) => b.dataset.v === value)
@@ -104,7 +114,20 @@
     })
 
     root.appendChild(btn)
-    return { root, get: () => value, set(v) { value = v; renderBtn() } }
+    return {
+      root,
+      get: () => value,
+      set(v) { value = v; renderBtn() },
+      /** 选项动态重建（如番茄钟关联任务的待办列表变化），保留当前值；
+       *  内容未变化时跳过重建——番茄钟页高频刷新，避免重建抹掉打开中的弹层高亮与滚动位置 */
+      setOptions(opts) {
+        const key = JSON.stringify(opts)
+        if (key === this._optKey) return
+        this._optKey = key
+        o.options = opts
+        buildList()
+      },
+    }
   }
 
   /**
@@ -209,5 +232,66 @@
     }
   }
 
-  window.Widgets = { select, datePicker }
+  /**
+   * 时间选择（值 'HH:MM'，null 为空）：时/分双列滚动弹层
+   */
+  function timePicker(o) {
+    let value = o.value || null
+    let open = false
+    const root = document.createElement('div')
+    root.className = 'wtime ' + (o.className || '')
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'wtrigger wdate-btn input'
+    btn.title = '选择时间'
+    const renderBtn = () => {
+      btn.innerHTML = `<span class="wdate-label${value ? '' : ' wph'}">${value || o.placeholder || '--:--'}</span>${CLOCK_SVG}`
+    }
+    renderBtn()
+
+    const pop = document.createElement('div')
+    pop.className = 'wtime-pop wpop'
+    const renderPop = () => {
+      const [hh, mm] = (value || '08:00').split(':')
+      const col = (k, head, arr, cur) =>
+        `<div class="wtime-col" data-k="${k}"><div class="wtime-head">${head}</div><div class="wtime-list">` +
+        arr.map((v) => `<button type="button" class="wtime-item${v === cur ? ' cur' : ''}" data-v="${v}">${v}</button>`).join('') +
+        '</div></div>'
+      const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+      const mins = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
+      pop.innerHTML = `<div class="wtime-cols">${col('h', '时', hours, hh)}${col('m', '分', mins, mm)}</div>`
+    }
+    pop.addEventListener('click', (e) => {
+      const b = e.target.closest('.wtime-item')
+      if (!b) return
+      const [hh, mm] = (value || '08:00').split(':')
+      value = b.closest('.wtime-col').dataset.k === 'h' ? b.dataset.v + ':' + mm : hh + ':' + b.dataset.v
+      renderBtn()
+      renderPop()
+      if (o.onChange) o.onChange(value)
+    })
+
+    const close = () => {
+      open = false
+    }
+    btn.addEventListener('click', () => {
+      if (open) return closeActive()
+      renderPop()
+      openPop(btn, pop, o.align === 'right', close)
+      open = true
+      pop.querySelectorAll('.wtime-item.cur').forEach((el) => el.scrollIntoView({ block: 'center' }))
+    })
+
+    root.appendChild(btn)
+    return {
+      root,
+      get: () => value,
+      set(v) {
+        value = v || null
+        renderBtn()
+      },
+    }
+  }
+
+  window.Widgets = { select, datePicker, timePicker }
 })()
