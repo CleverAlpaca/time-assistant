@@ -651,7 +651,38 @@ input[type='number'].input { width: 84px; text-align: center; }
 .cal-layout { display: flex; gap: 18px; align-items: flex-start; }
 .cal-main { flex: 1; min-width: 0; }
 .cal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.cal-title { font-size: 16px; font-weight: 700; min-width: 120px; }
+.cal-title-wrap { position: relative; min-width: 0; }
+.cal-title {
+  font: inherit;
+  font-size: 16px; font-weight: 700;
+  color: var(--text);
+  background: transparent; border: none; cursor: pointer;
+  padding: 4px 10px; border-radius: 9px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.12s;
+}
+.cal-title:hover { background: var(--bg-hover); }
+.cal-title .caret { font-size: 10px; color: var(--text-3); }
+/* 年月选择浮层（点击标题弹出） */
+.cal-picker {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 40;
+  width: 240px; padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-weak);
+  box-shadow: var(--shadow-pop), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.cal-pick-year { display: flex; align-items: center; gap: 10px; }
+.cal-pick-year label { font-size: 12.5px; color: var(--text-2); flex: none; }
+.cal-pick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.cal-pick-month {
+  padding: 8px 0; text-align: center;
+  font-size: 12.5px; color: var(--text-2);
+  background: var(--glass-weak);
+  border: 1px solid transparent; border-radius: 9px;
+  cursor: pointer; transition: all 0.12s;
+}
+.cal-pick-month:hover { border-color: var(--accent); color: var(--text); }
+.cal-pick-month.cur { background: var(--accent-grad); color: #fff; font-weight: 600; box-shadow: 0 2px 10px var(--accent-soft); }
 .cal-nav { display: flex; gap: 4px; margin-left: auto; }
 
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }

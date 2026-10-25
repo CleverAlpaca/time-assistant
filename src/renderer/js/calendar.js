@@ -105,11 +105,24 @@
         <div class="cal-layout">
           <div class="cal-main">
             <div class="cal-head">
-              <div class="cal-title" id="cal-title"></div>
+              <div class="cal-title-wrap">
+                <button class="cal-title" id="cal-title" title="选择年月">
+                  <span id="cal-title-text"></span><span class="caret">▾</span>
+                </button>
+                <div class="cal-picker card" id="cal-picker" hidden>
+                  <div class="cal-pick-year">
+                    <label>年份</label>
+                    <select class="input" id="cal-pick-year"></select>
+                  </div>
+                  <div class="cal-pick-grid" id="cal-pick-grid"></div>
+                </div>
+              </div>
               <div class="cal-nav">
-                <button class="btn btn-secondary btn-sm" id="cal-prev">‹</button>
+                <button class="btn btn-secondary btn-sm" id="cal-prev-year" title="上一年">«</button>
+                <button class="btn btn-secondary btn-sm" id="cal-prev" title="上个月">‹</button>
                 <button class="btn btn-secondary btn-sm" id="cal-today">今天</button>
-                <button class="btn btn-secondary btn-sm" id="cal-next">›</button>
+                <button class="btn btn-secondary btn-sm" id="cal-next" title="下个月">›</button>
+                <button class="btn btn-secondary btn-sm" id="cal-next-year" title="下一年">»</button>
               </div>
             </div>
             <div class="cal-grid" id="cal-grid"></div>
@@ -117,6 +130,8 @@
           <div class="cal-panel card" id="cal-panel"></div>
         </div>`
 
+      root.querySelector('#cal-prev-year').onclick = () => this.shiftMonth(-12)
+      root.querySelector('#cal-next-year').onclick = () => this.shiftMonth(12)
       root.querySelector('#cal-prev').onclick = () => this.shiftMonth(-1)
       root.querySelector('#cal-next').onclick = () => this.shiftMonth(1)
       root.querySelector('#cal-today').onclick = () => {
@@ -133,6 +148,50 @@
       })
       root.querySelector('#cal-panel').addEventListener('click', (e) => this._onPanelClick(e))
 
+      // 年月选择面板：点标题开合、点外部/Esc 关闭
+      const picker = root.querySelector('#cal-picker')
+      const yearSel = root.querySelector('#cal-pick-year')
+      for (let y = 1900; y <= 2100; y++) {
+        const opt = document.createElement('option')
+        opt.value = String(y)
+        opt.textContent = y + ' 年'
+        yearSel.appendChild(opt)
+      }
+      const monthGrid = root.querySelector('#cal-pick-grid')
+      for (let m = 0; m < 12; m++) {
+        const b = document.createElement('button')
+        b.className = 'cal-pick-month'
+        b.dataset.m = String(m)
+        b.textContent = `${m + 1} 月`
+        monthGrid.appendChild(b)
+      }
+      const setPickerOpen = (open) => {
+        this._pickerOpen = open
+        picker.hidden = !open
+      }
+      root.querySelector('#cal-title').onclick = (e) => {
+        e.stopPropagation()
+        setPickerOpen(this._pickerOpen ? false : true)
+      }
+      picker.addEventListener('click', (e) => e.stopPropagation())
+      yearSel.onchange = () => {
+        this.view = new Date(+yearSel.value, this.view.getMonth(), 1)
+        this.render()
+      }
+      root.querySelector('#cal-pick-grid').addEventListener('click', (e) => {
+        const b = e.target.closest('.cal-pick-month')
+        if (!b) return
+        this.view = new Date(+yearSel.value, +b.dataset.m, 1)
+        setPickerOpen(false)
+        this.render()
+      })
+      document.addEventListener('click', (e) => {
+        if (this._pickerOpen && !e.target.closest('.cal-title-wrap')) setPickerOpen(false)
+      })
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this._pickerOpen) setPickerOpen(false)
+      })
+
       Data.on('*', () => this.render())
       this.render()
     },
@@ -142,13 +201,20 @@
     },
 
     shiftMonth(n) {
-      this.view = new Date(this.view.getFullYear(), this.view.getMonth() + n, 1)
+      let y = this.view.getFullYear()
+      let m = this.view.getMonth() + n
+      y += Math.floor(m / 12)
+      m = ((m % 12) + 12) % 12
+      // 农历数据范围 1900-2100，越界则停在边界
+      if (y < 1900) { y = 1900; m = 0 }
+      if (y > 2100) { y = 2100; m = 11 }
+      this.view = new Date(y, m, 1)
       this.render()
     },
 
     render() {
-      const title = this.root.querySelector('#cal-title')
-      title.textContent = `${this.view.getFullYear()} 年 ${this.view.getMonth() + 1} 月`
+      this.root.querySelector('#cal-title-text').textContent =
+        `${this.view.getFullYear()} 年 ${this.view.getMonth() + 1} 月`
 
       const focusMap = focusByDay()
       const todoMap = new Map()
@@ -195,7 +261,18 @@
           </div>`
       }
       this.root.querySelector('#cal-grid').innerHTML = html
+      this.renderPicker()
       this.renderPanel()
+    },
+
+    // 同步年月面板：年份下拉与当前月高亮
+    renderPicker() {
+      const sel = this.root.querySelector('#cal-pick-year')
+      if (!sel) return
+      sel.value = String(this.view.getFullYear())
+      for (const b of this.root.querySelectorAll('.cal-pick-month')) {
+        b.classList.toggle('cur', +b.dataset.m === this.view.getMonth())
+      }
     },
 
     renderPanel() {
