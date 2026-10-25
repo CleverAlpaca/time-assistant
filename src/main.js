@@ -164,7 +164,7 @@ function trayLabel() {
           : '休息'
         : running.mode === 'countdown'
           ? running.title || '倒计时'
-          : '正计时'
+          : '计时器'
     const sec = Math.floor(running.ms / 1000)
     const mm = String(Math.floor(sec / 60)).padStart(2, '0')
     const ss = String(sec % 60).padStart(2, '0')
@@ -270,7 +270,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray()
     if (store.getSettings().miniWindow) createMiniWindow()
 
-    setInterval(() => engine.tick(), 250)
+    setInterval(() => engine.tick(), 50) // 50ms 驱动：毫秒显示平滑
     setInterval(() => scheduler.tick(), 1000)
     engine.onStateChange(engine.snapshot())
 

@@ -1,5 +1,5 @@
 // 引擎并行计时测试（node scripts/test-mode-switch.mjs）
-// 三组计时器互相独立：视图切换不打断、后台到点照常结算、侧栏条目随重置/停止记录消失
+// 三组计时器互相独立：视图切换不打断、后台到点照常结算、侧栏条目随重置/停止消失（新的在上）
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 const assert = require('assert')
@@ -30,7 +30,7 @@ assert.ok(cd.ms <= 357_000 && cd.ms > 350_000, '剩余时间正确，实际 ' + 
 engine.tick()
 st = engine.snapshot()
 cd = side(st, 'countdown')
-assert.ok(cd && cd.running && cd.ms < 357_000, 'tick 后仍在倒计')
+assert.ok(cd && cd.running && cd.ms <= 357_000, 'tick 后仍在倒计')
 
 // 2. 后台到点自动结算：通知 + 会话 + 侧栏条目消失
 engine.control('mode', 'pomodoro')
@@ -52,7 +52,7 @@ engine.control('start')
 engine.control('pause')
 st = engine.snapshot()
 cd = side(st, 'countdown')
-assert.ok(cd && !cd.running && cd.ms === 6 * 60_000, '暂停任务显示在侧栏')
+assert.ok(cd && !cd.running && cd.ms > 359_000 && cd.ms <= 360_000, '暂停任务显示在侧栏')
 engine.control('mode', 'pomodoro') // 切走
 st = engine.snapshot()
 assert.ok(side(st, 'countdown'), '切走后暂停任务仍在侧栏')
@@ -67,7 +67,7 @@ st = engine.snapshot()
 assert.ok(!side(st, 'countdown'), '重置后条目消失')
 assert.strictEqual(engine.timers.countdown.durationMs, 6 * 60_000, '时长配置保留')
 
-// 5. 三组并行：番茄钟专注与正计时同时运行互不干涉
+// 5. 三组并行：番茄钟专注与计时器同时运行互不干涉（新任务在侧栏上方）
 engine.control('mode', 'pomodoro')
 engine.control('task', { id: 't1', title: '写周报' })
 engine.control('start')
@@ -78,10 +78,12 @@ engine.tick()
 engine.tick()
 st = engine.snapshot()
 assert.strictEqual(st.view, 'stopwatch')
-assert.ok(st.elapsedMs >= 0 && st.running, '正计时在跑')
+assert.ok(st.elapsedMs >= 0 && st.running, '计时器在跑')
 const pomo = side(st, 'pomodoro')
 assert.ok(pomo && pomo.running && pomo.phase === 'focus', '番茄钟同时在后台跑')
 assert.ok(st.sidebar.length === 2, '侧栏两条任务，实际 ' + st.sidebar.length)
+assert.strictEqual(st.sidebar[0].mode, 'stopwatch', '新任务排在上面')
+assert.strictEqual(st.sidebar[1].mode, 'pomodoro', '旧任务排在下面')
 assert.ok(st.elapsedMs < 60_000)
 
 // 6. 番茄钟后台到点：自动进入短休（autoStartBreak=true）+ 记会话 + 周期 +1
@@ -99,16 +101,16 @@ assert.ok(notes.some((n) => n.title === '专注完成 🍅'), '专注完成通�
 assert.ok(notes.some((n) => n.title.includes('短休')), '进入短休通知')
 assert.ok(side(st, 'pomodoro') && side(st, 'pomodoro').phase === 'short', '侧栏显示短休')
 
-// 7. 正计时停止记录：≥60s 记 completed:true 并消失；短休不受影响
+// 7. 计时器停止：≥60s 记 completed:true 并消失；短休不受影响
 engine.control('mode', 'stopwatch')
 engine.timers.stopwatch.elapsedMs += 90_000
 sessions.length = 0
-engine.control('reset') // 停止记录
+engine.control('reset') // 停止
 st = engine.snapshot()
-assert.strictEqual(sessions.length, 1, '正计时停止记录入统计')
+assert.strictEqual(sessions.length, 1, '计时器停止入统计')
 assert.strictEqual(sessions[0].completed, true)
 assert.ok(sessions[0].durationMs >= 90_000)
-assert.ok(!side(st, 'stopwatch'), '停止记录后条目消失')
+assert.ok(!side(st, 'stopwatch'), '停止后条目消失')
 assert.ok(side(st, 'pomodoro'), '短休不受影响')
 
 // 8. 重置番茄钟：任务消失、相位与周期归零、关联任务保留

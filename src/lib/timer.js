@@ -1,4 +1,4 @@
-// 计时引擎：番茄钟（专注/短休/长休相位循环）、自由倒计时、正计时
+// 计时引擎：番茄钟（专注/短休/长休相位循环）、自由倒计时、计时器
 // 运行于主进程 —— 三组计时器互相独立、可并行运行，互不打断；
 // view 只是「当前页面正在查看/控制哪个计时器」，切换视图不影响任何计时任务
 class TimerEngine {
@@ -9,16 +9,18 @@ class TimerEngine {
     this.onStateChange = onStateChange
 
     this.view = 'pomodoro' // pomodoro | countdown | stopwatch（页面视图）
+    this.taskSeq = 0 // 新任务序号（侧栏「新的在上」排序，单调递增避免同毫秒平局）
     this.timers = {
       pomodoro: this.freshPomodoro(),
-      countdown: { durationMs: 25 * 60_000, label: null, running: false, endsAt: null, remaining: null, segmentStart: null },
-      stopwatch: { elapsedMs: 0, running: false, lastTick: null, segmentStart: null },
+      countdown: { seq: 0, durationMs: 25 * 60_000, label: null, running: false, endsAt: null, remaining: null, segmentStart: null },
+      stopwatch: { seq: 0, elapsedMs: 0, running: false, lastTick: null, segmentStart: null },
     }
   }
 
   freshPomodoro() {
     const s = this.getSettings()
     return {
+      seq: 0, // 本轮任务序号（侧栏排序用）
       phase: 'focus', // focus | short | long
       cycleCount: 0, // 本轮已完成专注数（用于长休节奏）
       task: { id: null, title: null },
@@ -30,7 +32,7 @@ class TimerEngine {
     }
   }
 
-  // 该计时器是否还有「任务」在侧栏展示（重置/停止记录后消失，完成自然消失）
+  // 该计时器是否还有「任务」在侧栏展示（重置/停止后消失，完成自然消失）
   hasState(key) {
     const t = this.timers[key]
     if (key === 'pomodoro') return t.running || t.remaining != null || t.cycleCount > 0
@@ -59,7 +61,7 @@ class TimerEngine {
     return { mode: key, view: key, running: t.running, ...modeState, ...base, sidebar: this.sidebar(now) }
   }
 
-  // 侧栏条目：有任务的计时器（运行中/暂停），点击可跳转对应页面
+  // 侧栏条目：有任务的计时器（运行中/暂停），新的任务排在旧的上面，点击可跳转对应页面
   sidebar(now = Date.now()) {
     const out = []
     const p = this.timers.pomodoro
@@ -76,9 +78,9 @@ class TimerEngine {
     const w = this.timers.stopwatch
     if (this.hasState('stopwatch')) {
       const ms = w.running ? w.elapsedMs + (now - (w.lastTick ?? now)) : w.elapsedMs
-      out.push({ mode: 'stopwatch', running: w.running, phase: null, title: '正计时', ms })
+      out.push({ mode: 'stopwatch', running: w.running, phase: null, title: '计时器', ms })
     }
-    return out
+    return out.sort((a, b) => (this.timers[b.mode].seq || 0) - (this.timers[a.mode].seq || 0))
   }
 
   // ---- 驱动：三组计时器全部推进，后台到点照常结算并提醒 ----
@@ -134,6 +136,7 @@ class TimerEngine {
   startTimer(key, now = Date.now()) {
     const t = this.timers[key]
     if (t.running) return
+    if (!this.hasState(key)) t.seq = ++this.taskSeq // 新任务开始：领序号，侧栏新的在上
     if (key === 'stopwatch') {
       t.lastTick = now
       t.running = true
@@ -155,12 +158,12 @@ class TimerEngine {
       t.elapsedMs += now - (t.lastTick ?? now)
       t.lastTick = null
     } else {
-      t.remaining = Math.max(0, t.endsAt - now)
+      t.remaining = Math.max(0, Math.round(t.endsAt - now))
     }
     t.running = false
   }
 
-  // 重置/停止记录：清空该计时器任务（侧栏条目随之消失）
+  // 重置/停止：清空该计时器任务（侧栏条目随之消失）
   resetTimer(key) {
     const t = this.timers[key]
     this.abandonLog(key)
@@ -192,7 +195,7 @@ class TimerEngine {
         this.toFocusPhase()
       }
     } else {
-      // 倒计时跳过 = 放弃本段；正计时跳过 = 停止记录
+      // 倒计时跳过 = 放弃本段；计时器跳过 = 停止
       this.resetTimer(key)
     }
   }
@@ -291,7 +294,7 @@ class TimerEngine {
     const p = this.timers.pomodoro
     this.onSession({
       mode: key,
-      title: key === 'pomodoro' ? p.task.title || '专注' : key === 'countdown' ? '倒计时专注' : '正计时专注',
+      title: key === 'pomodoro' ? p.task.title || '专注' : key === 'countdown' ? '倒计时专注' : '计时器专注',
       taskId: key === 'pomodoro' ? p.task.id : null,
       start,
       end,

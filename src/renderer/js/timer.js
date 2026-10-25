@@ -1,4 +1,4 @@
-// 番茄钟 / 倒计时 / 正计时页（首页）
+// 番茄钟 / 倒计时 / 计时器页（首页）
 ;(function () {
   const C = 2 * Math.PI * 122 // 圆环周长
   const DEFAULT_PRESETS = [5, 10, 15, 20, 25, 30, 45, 60].map((m) => ({ ms: m * 60_000, label: '' }))
@@ -53,7 +53,7 @@
       if (st.phase === 'focus') return taskTitle ? `任务 · ${taskTitle}` : '专注时间'
       return st.phase === 'short' ? '短休一下 ☕' : '好好长休 🛋️'
     }
-    return st.mode === 'countdown' ? st.label || '倒计时' : '正计时'
+    return st.mode === 'countdown' ? st.label || '倒计时' : '计时器'
   }
 
   App.pages.timer = {
@@ -64,7 +64,7 @@
           <div class="seg timer-mode">
             <button class="seg-item active" data-mode="pomodoro">番茄钟</button>
             <button class="seg-item" data-mode="countdown">倒计时</button>
-            <button class="seg-item" data-mode="stopwatch">正计时</button>
+            <button class="seg-item" data-mode="stopwatch">计时器</button>
           </div>
           <div class="ring-box">
             <svg width="264" height="264" viewBox="0 0 264 264">
@@ -158,7 +158,10 @@
       const isFocusBreak = st.mode === 'pomodoro'
       const ms = isStopwatch ? st.elapsedMs : st.remainingMs
 
-      root.querySelector('#tm-time').textContent = App.fmtMS(ms)
+      root.querySelector('#tm-time').innerHTML =
+        `${App.fmtMS(ms)}<span class="ring-ms">.${String(Math.max(0, Math.floor(ms)) % 1000).padStart(3, '0')}</span>`
+      const timeEl = root.querySelector('#tm-time')
+      timeEl.classList.toggle('hms', Math.floor(Math.max(0, ms) / 3_600_000) > 0)
       root.querySelector('#tm-sub').textContent = subText(st, st.taskTitle)
       root.querySelector('#tm-time').style.color = st.running ? phaseColor(st) : 'var(--text)'
 
@@ -204,7 +207,7 @@
       else if (isStopwatch) label = st.elapsedMs > 0 ? '继续' : '开始'
       else label = st.remainingMs != null && st.remainingMs < st.durationMs ? '继续' : '开始'
       main.textContent = label
-      root.querySelector('#tm-reset').textContent = isStopwatch ? '停止记录' : '重置'
+      root.querySelector('#tm-reset').textContent = isStopwatch ? '停止' : '重置'
       const third = root.querySelector('#tm-third')
       if (isStopwatch) {
         third.style.display = 'none'

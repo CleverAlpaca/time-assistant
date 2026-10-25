@@ -162,7 +162,7 @@
     renderRank() {
       const byTask = new Map()
       for (const s of completed()) {
-        const name = s.mode === 'pomodoro' ? s.title || '专注' : s.mode === 'countdown' ? '倒计时专注' : '正计时专注'
+        const name = s.mode === 'pomodoro' ? s.title || '专注' : s.mode === 'countdown' ? '倒计时专注' : '计时器专注'
         byTask.set(name, (byTask.get(name) || 0) + s.durationMs / 60_000)
       }
       const rows = [...byTask.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
