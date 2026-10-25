@@ -133,29 +133,31 @@
     document.documentElement.dataset.theme = pref === 'auto' ? (darkFromSystem ? 'dark' : 'light') : pref
   }
 
-  // ---- 侧栏迷你计时 ----
+  // ---- 侧栏计时任务：三组计时器并行独立，各占一条；点击跳转对应计时页 ----
   function initSidebarTimer() {
     const box = $('#sidebar-timer')
-    const label = $('#sidebar-timer-label')
-    const time = $('#sidebar-timer-time')
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('.sb-timer-item')
+      if (!b) return
+      timeAPI.timer.control('mode', b.dataset.mode)
+      App.nav('timer')
+    })
     timeAPI.on('timer:state', (st) => {
-      const active = st.running || (st.mode === 'stopwatch' && st.elapsedMs > 0)
-      box.hidden = !active
-      if (!active) return
-      const name =
-        st.mode === 'pomodoro'
-          ? st.phase === 'focus'
-            ? '专注中'
-            : st.phase === 'short'
-              ? '短休'
-              : '长休'
-          : st.mode === 'countdown'
-            ? '倒计时'
-            : '正计时'
-      label.textContent = name
-      time.textContent = App.fmtMS(st.mode === 'stopwatch' ? st.elapsedMs : st.remainingMs)
-      const isBreak = st.mode === 'pomodoro' && st.phase !== 'focus'
-      time.style.color = isBreak ? 'var(--green)' : 'var(--accent)'
+      const items = st.sidebar || []
+      box.hidden = items.length === 0
+      box.innerHTML = items
+        .map((it) => {
+          const isBreak = it.mode === 'pomodoro' && it.phase !== 'focus'
+          const cls = 'sb-timer-item' + (it.running ? '' : ' paused') + (isBreak ? ' is-break' : '') + (st.view === it.mode ? ' current' : '')
+          const tip = it.running ? '点击查看此计时' : '已暂停 · 点击查看'
+          return (
+            `<button class="${cls}" data-mode="${it.mode}" title="${tip}">` +
+            `<span class="sidebar-timer-label">${App.esc(it.title)}${it.running ? '' : ' ⏸'}</span>` +
+            `<span class="sidebar-timer-time">${App.fmtMS(it.ms)}</span>` +
+            `</button>`
+          )
+        })
+        .join('')
     })
   }
 

@@ -216,6 +216,12 @@ body.maximized #window {
 .sidebar-timer {
   -webkit-app-region: no-drag;
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sb-timer-item {
+  font-family: inherit;
   background: var(--glass);
   backdrop-filter: var(--glass-blur-lite);
   -webkit-backdrop-filter: var(--glass-blur-lite);
@@ -224,13 +230,22 @@ body.maximized #window {
   padding: 10px 12px;
   text-align: center;
   box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
 }
+.sb-timer-item:hover { background: var(--bg-hover); border-color: var(--accent); }
+.sb-timer-item.current { border-color: var(--accent); }
 .sidebar-timer-label { font-size: 11px; color: var(--text-2); margin-bottom: 2px; }
 .sidebar-timer-time {
   font-size: 22px; font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
 }
+.sb-timer-item.paused .sidebar-timer-time { color: var(--text-2); }
+.sb-timer-item.is-break .sidebar-timer-time { color: var(--green); }
 
 /* ============ 主区与页面 ============ */
 #main {

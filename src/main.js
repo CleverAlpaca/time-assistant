@@ -154,12 +154,23 @@ function showMainWindow() {
 // ---- 托盘 ----
 function trayLabel() {
   const st = engine.snapshot()
-  if (!st.running) return st.mode === 'stopwatch' && st.elapsedMs > 0 ? '时光助手 — 暂停' : '时光助手'
-  const name = st.mode === 'pomodoro' ? (st.phase === 'focus' ? '专注' : '休息') : st.mode === 'countdown' ? '倒计时' : '正计时'
-  const sec = Math.floor((st.mode === 'stopwatch' ? st.elapsedMs : st.remainingMs) / 1000)
-  const mm = String(Math.floor(sec / 60)).padStart(2, '0')
-  const ss = String(sec % 60).padStart(2, '0')
-  return `时光助手 — ${name} ${mm}:${ss}`
+  // 优先显示任一正在运行的计时器；都没有但有暂停任务则提示已暂停
+  const running = (st.sidebar || []).find((x) => x.running)
+  if (running) {
+    const name =
+      running.mode === 'pomodoro'
+        ? running.phase === 'focus'
+          ? '专注'
+          : '休息'
+        : running.mode === 'countdown'
+          ? running.title || '倒计时'
+          : '正计时'
+    const sec = Math.floor(running.ms / 1000)
+    const mm = String(Math.floor(sec / 60)).padStart(2, '0')
+    const ss = String(sec % 60).padStart(2, '0')
+    return `时光助手 — ${name} ${mm}:${ss}`
+  }
+  return (st.sidebar || []).length > 0 ? '时光助手 — 已暂停' : '时光助手'
 }
 
 function createTray() {
@@ -172,19 +183,19 @@ function createTray() {
 
 function rebuildTrayMenu() {
   const st = engine.snapshot()
-  const focusish = st.mode !== 'stopwatch' || st.elapsedMs > 0
+  const pomo = (st.sidebar || []).find((x) => x.mode === 'pomodoro')
+  const pomoRunning = !!(pomo && pomo.running)
   const menu = Menu.buildFromTemplate([
     { label: '显示主窗口', click: () => showMainWindow() },
     { type: 'separator' },
     {
-      label: st.running ? '暂停' : '开始专注',
-      enabled: focusish || !st.running,
+      label: pomoRunning ? '暂停番茄钟' : '开始番茄钟',
       click: () => {
-        if (st.mode !== 'pomodoro') engine.control('mode', 'pomodoro')
-        engine.control(st.running ? 'pause' : 'start')
+        engine.control('mode', 'pomodoro')
+        engine.control(pomoRunning ? 'pause' : 'start')
       },
     },
-    { label: '重置', click: () => engine.control('reset') },
+    { label: '重置当前计时', click: () => engine.control('reset') },
     {
       label: '悬浮计时窗',
       type: 'checkbox',
