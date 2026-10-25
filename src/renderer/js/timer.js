@@ -99,8 +99,15 @@
       root.querySelector('#tm-durs').addEventListener('click', (e) => {
         const b = e.target.closest('.dur-chip')
         if (!b) return
-        const p = getPresets().find((x) => x.ms === +b.dataset.ms)
-        timeAPI.timer.control('countdownDuration', +b.dataset.ms)
+        const ms = +b.dataset.ms
+        // 已选中项再次左键 = 打开修改弹窗（右键任意项随时可用）
+        if (this.st && this.st.durationMs === ms) {
+          const sel = getPresets().find((x) => x.ms === ms)
+          if (sel) this.openCustomCountdown(sel)
+          return
+        }
+        const p = getPresets().find((x) => x.ms === ms)
+        timeAPI.timer.control('countdownDuration', ms)
         timeAPI.timer.control('countdownLabel', p && p.label ? p.label : null)
       })
       // 右键时长项：修改（弹窗内可删除）
@@ -239,6 +246,24 @@
           </div>
           ${preset ? '' : '<div class="text-2" style="font-size:12px;margin-top:-4px">保存后加入上方时长项，右键可修改或删除</div>'}
         </div>`)
+      // 悬停时长输入框滚动滚轮 = 增/减（毫秒步进 50，其余 1）
+      const bindWheel = (id, max) => {
+        const el = body.querySelector(id)
+        el.addEventListener(
+          'wheel',
+          (e) => {
+            e.preventDefault()
+            const step = id === '#fm-cd-ms' ? 50 : 1
+            const cur = Math.floor(+el.value || 0)
+            const next = Math.min(max, Math.max(0, cur + (e.deltaY < 0 ? step : -step)))
+            if (next !== cur) el.value = next
+          },
+          { passive: false }
+        )
+      }
+      bindWheel('#fm-cd-min', 599)
+      bindWheel('#fm-cd-sec', 59)
+      bindWheel('#fm-cd-ms', 999)
       const actions = [
         {
           label: '保存',
