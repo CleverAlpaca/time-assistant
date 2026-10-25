@@ -27,13 +27,14 @@
 
   function openEventModal(existing, defaultDate) {
     const ev = existing || { title: '', date: defaultDate, time: '09:00', remindMin: null }
+    const dateW = Widgets.datePicker({ value: ev.date || '', className: 'fill' })
     const body = App.el(`
       <div>
         <div class="form-row"><label>标题</label>
           <input class="input" id="fm-title" placeholder="日程安排…" value="${App.esc(ev.title)}"></div>
         <div class="form-row"><label>日期与时间</label>
           <div style="display:flex;gap:10px">
-            <input class="input" id="fm-date" type="date" value="${App.esc(ev.date || '')}" style="flex:1">
+            <span id="fm-date" style="flex:1;display:flex"></span>
             <input class="input" id="fm-time" type="time" value="${App.esc(ev.time || '')}" style="flex:1">
           </div>
         </div>
@@ -47,6 +48,7 @@
           </select>
         </div>
       </div>`)
+    body.querySelector('#fm-date').appendChild(dateW.root)
     body.querySelector('#fm-remind').value = ev.remindMin === null || ev.remindMin === undefined ? '' : String(ev.remindMin)
 
     App.modal({
@@ -57,7 +59,7 @@
           label: '保存',
           onClick: (close) => {
             const title = body.querySelector('#fm-title').value.trim()
-            const date = body.querySelector('#fm-date').value
+            const date = dateW.get()
             const time = body.querySelector('#fm-time').value
             if (!title) return App.toast({ title: '请输入标题' })
             if (!date || !time) return App.toast({ title: '请选择日期和时间' })
@@ -112,7 +114,7 @@
                 <div class="cal-picker card" id="cal-picker" hidden>
                   <div class="cal-pick-year">
                     <label>年份</label>
-                    <select class="input" id="cal-pick-year"></select>
+                    <span id="cal-pick-year-host"></span>
                   </div>
                   <div class="cal-pick-grid" id="cal-pick-grid"></div>
                 </div>
@@ -150,13 +152,19 @@
 
       // 年月选择面板：点标题开合、点外部/Esc 关闭
       const picker = root.querySelector('#cal-picker')
-      const yearSel = root.querySelector('#cal-pick-year')
-      for (let y = 1900; y <= 2100; y++) {
-        const opt = document.createElement('option')
-        opt.value = String(y)
-        opt.textContent = y + ' 年'
-        yearSel.appendChild(opt)
-      }
+      const yearOptions = []
+      for (let y = 1900; y <= 2100; y++) yearOptions.push({ value: String(y), label: y + ' 年' })
+      const yearSel = Widgets.select({
+        options: yearOptions,
+        value: String(this.view.getFullYear()),
+        className: 'wselect-year',
+        onChange: (v) => {
+          this.view = new Date(+v, this.view.getMonth(), 1)
+          this.render()
+        },
+      })
+      root.querySelector('#cal-pick-year-host').appendChild(yearSel.root)
+      this._yearSel = yearSel
       const monthGrid = root.querySelector('#cal-pick-grid')
       for (let m = 0; m < 12; m++) {
         const b = document.createElement('button')
@@ -174,19 +182,15 @@
         setPickerOpen(this._pickerOpen ? false : true)
       }
       picker.addEventListener('click', (e) => e.stopPropagation())
-      yearSel.onchange = () => {
-        this.view = new Date(+yearSel.value, this.view.getMonth(), 1)
-        this.render()
-      }
       root.querySelector('#cal-pick-grid').addEventListener('click', (e) => {
         const b = e.target.closest('.cal-pick-month')
         if (!b) return
-        this.view = new Date(+yearSel.value, +b.dataset.m, 1)
+        this.view = new Date(+yearSel.get(), +b.dataset.m, 1)
         setPickerOpen(false)
         this.render()
       })
       document.addEventListener('click', (e) => {
-        if (this._pickerOpen && !e.target.closest('.cal-title-wrap')) setPickerOpen(false)
+        if (this._pickerOpen && !e.target.closest('.cal-title-wrap') && !e.target.closest('.wpop')) setPickerOpen(false)
       })
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && this._pickerOpen) setPickerOpen(false)
@@ -274,9 +278,7 @@
 
     // 同步年月面板：年份下拉与当前月高亮
     renderPicker() {
-      const sel = this.root.querySelector('#cal-pick-year')
-      if (!sel) return
-      sel.value = String(this.view.getFullYear())
+      if (this._yearSel) this._yearSel.set(String(this.view.getFullYear()))
       for (const b of this.root.querySelectorAll('.cal-pick-month')) {
         b.classList.toggle('cur', +b.dataset.m === this.view.getMonth())
       }

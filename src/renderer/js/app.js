@@ -116,7 +116,7 @@
         title: '确认操作',
         body: `<p style="font-size:13px;line-height:1.6">${esc(message)}</p>`,
         actions: [
-          { label: '取消', class: 'btn-secondary', onClick: (close) => { close(); resolve(false) } },
+          { label: '取消', class: 'btn-secondary', cancel: true, onClick: (close) => { close(); resolve(false) } },
           { label: okLabel, class: danger ? 'btn-danger' : 'btn-primary', onClick: (close) => { close(); resolve(true) } },
         ],
       })

@@ -42,6 +42,7 @@
 
   function openAlarmModal(existing) {
     const a = existing || { title: '', time: '08:00', repeat: 'daily', date: DU.dateKey(new Date()), weekdays: [1, 2, 3, 4, 5] }
+    const dateW = Widgets.datePicker({ value: a.date || '', className: 'fill' })
     const body = App.el(`
       <div>
         <div class="form-row"><label>标题</label>
@@ -56,11 +57,12 @@
           </div>
           <div style="margin-top:10px">
             <div class="form-row" id="fm-date-row" style="margin:0"><label style="margin-top:0">日期</label>
-              <input class="input" id="fm-date" type="date" value="${App.esc(a.date || '')}"></div>
+              <span id="fm-date" style="display:flex"></span></div>
             <div class="chips" id="fm-weekdays" style="margin-top:10px"></div>
           </div>
         </div>
       </div>`)
+    body.querySelector('#fm-date').appendChild(dateW.root)
 
     const repeatSeg = body.querySelector('#fm-repeat')
     const syncRepeatUI = () => {
@@ -104,7 +106,7 @@
             if (!time) return App.toast({ title: '请选择时间' })
             let date = null
             if (a.repeat === 'once') {
-              date = body.querySelector('#fm-date').value
+              date = dateW.get()
               if (!date) return App.toast({ title: '请选择日期' })
             }
             if (a.repeat === 'weekly' && (!a.weekdays || !a.weekdays.length)) {

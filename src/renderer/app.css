@@ -857,3 +857,79 @@ html[data-theme='dark'] .mini-window {
   letter-spacing: 1px;
 }
 .mini-label { font-size: 11px; color: var(--text-2); }
+
+/* ============ 自定义下拉 / 日期控件（替代原生 select 与 date 弹层） ============ */
+.wselect, .wdate { position: relative; display: inline-flex; }
+.wselect-btn, .wdate-btn {
+  width: auto; /* 覆盖 .input 的 100%，跟随内容宽；.fill 时撑满 */
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  cursor: pointer; text-align: left;
+  white-space: nowrap;
+}
+.wdate.fill, .wselect.fill { flex: 1; display: flex; }
+.wdate.fill .wdate-btn, .wselect.fill .wselect-btn { width: 100%; }
+.wselect-btn .caret { font-size: 10px; color: var(--text-3); flex: none; }
+.wdate-ico { color: var(--text-3); flex: none; }
+.wph { color: var(--text-3); }
+
+/* 弹层：modal 级毛玻璃，挂 body 下 fixed 定位 */
+.wpop {
+  position: fixed; z-index: 95;
+  min-width: max-content;
+  background: var(--glass-strong);
+  backdrop-filter: blur(32px) saturate(170%);
+  -webkit-backdrop-filter: blur(32px) saturate(170%);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  padding: 6px;
+  animation: wpopin 0.14s ease;
+}
+@keyframes wpopin { from { opacity: 0; transform: translateY(-3px); } }
+
+.wselect-list { max-height: 264px; overflow-y: auto; }
+.wselect-item {
+  display: block; width: 100%;
+  padding: 7px 12px;
+  font: inherit; font-size: 13px; text-align: left;
+  color: var(--text-2);
+  background: transparent; border: none; border-radius: 8px;
+  cursor: pointer; transition: background 0.1s;
+}
+.wselect-item:hover { background: var(--bg-hover); color: var(--text); }
+.wselect-item.cur { background: var(--accent-grad); color: #fff; font-weight: 600; }
+
+.wdate-pop { width: 252px; padding: 10px; }
+.wdate-head { display: flex; align-items: center; gap: 2px; margin-bottom: 6px; }
+.wdate-title { flex: 1; text-align: center; font-size: 13px; font-weight: 600; }
+.wdate-nav { width: 26px; height: 26px; font-size: 12px; }
+.wdate-week {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.wdate-week span { text-align: center; font-size: 11px; color: var(--text-3); padding: 2px 0; }
+.wdate-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.wdate-day {
+  height: 28px;
+  font: inherit; font-size: 12.5px; color: var(--text-2);
+  background: transparent; border: none; border-radius: 7px;
+  cursor: pointer; transition: background 0.1s;
+}
+.wdate-day:hover { background: var(--bg-hover); color: var(--text); }
+.wdate-day.other { opacity: 0.45; }
+.wdate-day.today { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--accent); font-weight: 600; }
+.wdate-day.cur { background: var(--accent-grad); color: #fff; font-weight: 600; box-shadow: 0 2px 8px var(--accent-soft); }
+.wdate-foot {
+  display: flex; justify-content: space-between;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--border-weak);
+}
+.wdate-foot button {
+  font: inherit; font-size: 12.5px;
+  color: var(--accent);
+  background: transparent; border: none;
+  padding: 4px 10px; border-radius: 7px;
+  cursor: pointer;
+}
+.wdate-foot button:hover { background: var(--bg-hover); }
+.wdate-foot .wdate-clear { color: var(--danger); }

@@ -40,6 +40,7 @@
 
   function openTodoModal(existing) {
     const t = existing || { title: '', priority: 'none', dueDate: '', dueTime: '', remind: false }
+    const dateW = Widgets.datePicker({ value: t.dueDate || '', className: 'fill' })
     const body = App.el(`
       <div>
         <div class="form-row"><label>标题</label>
@@ -54,7 +55,7 @@
         </div>
         <div class="form-row"><label>截止日期（可选）</label>
           <div style="display:flex;gap:10px">
-            <input class="input" id="fm-date" type="date" value="${App.esc(t.dueDate || '')}" style="flex:1">
+            <span id="fm-date" style="flex:1;display:flex"></span>
             <input class="input" id="fm-time" type="time" value="${App.esc(t.dueTime || '')}" style="flex:1">
           </div>
         </div>
@@ -64,6 +65,7 @@
           <label class="switch"><input type="checkbox" id="fm-remind" ${t.remind ? 'checked' : ''}><span class="track"></span></label>
         </div>
       </div>`)
+    body.querySelector('#fm-date').appendChild(dateW.root)
 
     const priSeg = body.querySelector('#fm-pri')
     const syncPri = () => priSeg.querySelectorAll('.seg-item').forEach((b) => b.classList.toggle('active', b.dataset.v === t.priority))
@@ -85,7 +87,7 @@
           onClick: (close) => {
             const title = body.querySelector('#fm-title').value.trim()
             if (!title) return App.toast({ title: '请输入标题' })
-            const dueDate = body.querySelector('#fm-date').value || null
+            const dueDate = dateW.get() || null
             const dueTime = body.querySelector('#fm-time').value || null
             let remind = body.querySelector('#fm-remind').checked
             if (remind && (!dueDate || !dueTime)) {
@@ -120,17 +122,12 @@
           <div><h2>待办任务</h2><div class="page-sub">设置截止时间的待办可自动提醒</div></div>
         </div>
         <div class="todo-layout">
-          <div class="todo-add">
-            <input class="input" id="td-input" placeholder="添加待办，回车保存…">
-            <input class="input" id="td-date" type="date" title="截止日期（可选）">
-            <select class="input" id="td-pri" title="优先级" style="width:auto">
-              <option value="none">无优先级</option>
-              <option value="high">高</option>
-              <option value="mid">中</option>
-              <option value="low">低</option>
-            </select>
-            <button class="btn btn-primary" id="td-add">添加</button>
-          </div>
+        <div class="todo-add">
+          <input class="input" id="td-input" placeholder="添加待办，回车保存…">
+          <span id="td-date-host" title="截止日期（可选）"></span>
+          <span id="td-pri-host" title="优先级"></span>
+          <button class="btn btn-primary" id="td-add">添加</button>
+        </div>
           <div class="seg todo-filters" id="td-filters">
             <button class="seg-item active" data-f="today">今天</button>
             <button class="seg-item" data-f="upcoming">即将到期</button>
@@ -141,13 +138,25 @@
         </div>`
 
       const input = root.querySelector('#td-input')
+      const dateW = Widgets.datePicker({ value: '', placeholder: '年 /月/日' })
+      const priW = Widgets.select({
+        options: [
+          { value: 'none', label: '无优先级' },
+          { value: 'high', label: '高' },
+          { value: 'mid', label: '中' },
+          { value: 'low', label: '低' },
+        ],
+        value: 'none',
+      })
+      root.querySelector('#td-date-host').appendChild(dateW.root)
+      root.querySelector('#td-pri-host').appendChild(priW.root)
       const quickAdd = async () => {
         const title = input.value.trim()
         if (!title) return
         const saved = await Data.save('todos', {
           title,
-          priority: root.querySelector('#td-pri').value,
-          dueDate: root.querySelector('#td-date').value || null,
+          priority: priW.get(),
+          dueDate: dateW.get() || null,
           dueTime: null,
           remind: false,
           done: false,
@@ -156,7 +165,7 @@
         })
         syncTodoAlarm(saved)
         input.value = ''
-        root.querySelector('#td-date').value = ''
+        dateW.set('')
       }
       root.querySelector('#td-add').onclick = quickAdd
       input.addEventListener('keydown', (e) => {
