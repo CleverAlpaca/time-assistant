@@ -183,8 +183,13 @@ class TimerEngine {
         this.logSession({ start: this.segmentStart, end: now, durationMs: this.durationMs, completed: true })
       }
       const mins = Math.floor(this.durationMs / 60_000)
-      const secs = Math.round((this.durationMs % 60_000) / 1000)
-      const durTxt = secs > 0 ? (mins > 0 ? `${mins} 分 ${secs} 秒` : `${secs} 秒`) : `${mins} 分钟`
+      const rem = this.durationMs % 60_000
+      const secs = Math.floor(rem / 1000)
+      const msPart = rem % 1000
+      let durTxt
+      if (rem === 0) durTxt = `${mins} 分钟`
+      else if (msPart === 0) durTxt = mins > 0 ? `${mins} 分 ${secs} 秒` : `${secs} 秒`
+      else durTxt = mins > 0 ? `${mins} 分 ${secs} 秒 ${msPart} 毫秒` : `${secs} 秒 ${msPart} 毫秒`
       this.notify('倒计时结束', this.label ? `「${this.label}」 ${durTxt}` : `时长 ${durTxt}`)
       this.segmentStart = null
     }

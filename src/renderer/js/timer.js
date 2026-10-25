@@ -1,7 +1,46 @@
 // 番茄钟 / 倒计时 / 正计时页（首页）
 ;(function () {
   const C = 2 * Math.PI * 122 // 圆环周长
-  const CHIPS = [5, 10, 15, 20, 25, 30, 45, 60] // 倒计时快捷分钟
+  const DEFAULT_PRESETS = [5, 10, 15, 20, 25, 30, 45, 60].map((m) => ({ ms: m * 60_000, label: '' }))
+
+  // 时长标签：整分「5 分」；含秒「1 分 30 秒」；含毫秒「1.25 秒」「999 毫秒」
+  function fmtDur(ms) {
+    const m = Math.floor(ms / 60_000)
+    const rem = ms % 60_000
+    if (rem === 0) return `${m} 分`
+    const s = rem / 1000
+    if (m === 0 && s < 1) return `${Math.round(ms)} 毫秒`
+    const sTxt = String(+s.toFixed(3))
+    return m === 0 ? `${sTxt} 秒` : Number.isInteger(s) ? `${m} 分 ${s} 秒` : `${m} 分 ${sTxt} 秒`
+  }
+
+  // 倒计时长项列表：存 settings.countdownPresets（[{ms, label}]，升序）；未配置时用默认八项
+  function getPresets() {
+    const list = Data.settings.countdownPresets
+    return Array.isArray(list) ? list : DEFAULT_PRESETS
+  }
+  function savePresets(list) {
+    // 先同步落地本地副本：连续编辑（删旧+存新）时下一次 getPresets 必须读到最新值，
+    // 否则会基于过期列表重复写入；异步 IPC 完成后回写的 settings 与本地一致，幂等
+    Data.settings = { ...Data.settings, countdownPresets: list }
+    Data.setSettings({ countdownPresets: list })
+  }
+  function upsertPreset(ms, label) {
+    const list = getPresets()
+    const i = list.findIndex((p) => p.ms === ms)
+    if (i >= 0) {
+      list[i] = { ms, label: label || '' }
+    } else {
+      if (list.length >= 12) return false
+      list.push({ ms, label: label || '' })
+      list.sort((a, b) => a.ms - b.ms)
+    }
+    savePresets(list)
+    return true
+  }
+  function removePreset(ms) {
+    savePresets(getPresets().filter((p) => p.ms !== ms))
+  }
 
   function phaseColor(st) {
     if (st.mode === 'countdown') return 'var(--accent)'
@@ -59,7 +98,18 @@
 
       root.querySelector('#tm-durs').addEventListener('click', (e) => {
         const b = e.target.closest('.dur-chip')
-        if (b) timeAPI.timer.control('countdownDuration', +b.dataset.min * 60_000)
+        if (!b) return
+        const p = getPresets().find((x) => x.ms === +b.dataset.ms)
+        timeAPI.timer.control('countdownDuration', +b.dataset.ms)
+        timeAPI.timer.control('countdownLabel', p && p.label ? p.label : null)
+      })
+      // 右键时长项：修改（弹窗内可删除）
+      root.querySelector('#tm-durs').addEventListener('contextmenu', (e) => {
+        const b = e.target.closest('.dur-chip')
+        if (!b || (this.st && this.st.running)) return
+        e.preventDefault()
+        const p = getPresets().find((x) => x.ms === +b.dataset.ms)
+        if (p) this.openCustomCountdown(p)
       })
 
       root.querySelector('#tm-main').onclick = () => timeAPI.timer.control((this.st && this.st.running) ? 'pause' : 'start')
@@ -130,12 +180,15 @@
       // 任务选择仅番茄钟模式
       root.querySelector('#tm-task-row').style.display = isFocusBreak ? '' : 'none'
 
-      // 倒计时时长筹码
+      // 倒计时时长项（点击使用 · 右键修改/删除）
       const durs = root.querySelector('#tm-durs')
       durs.style.display = st.mode === 'countdown' ? '' : 'none'
-      durs.innerHTML = CHIPS.map(
-        (m) => `<button class="dur-chip${st.durationMs === m * 60_000 ? ' on' : ''}" data-min="${m}" ${st.running ? 'disabled' : ''}>${m} 分</button>`
-      ).join('')
+      durs.innerHTML = getPresets()
+        .map(
+          (p) =>
+            `<button class="dur-chip${st.durationMs === p.ms ? ' on' : ''}" data-ms="${p.ms}" title="点击使用 · 右键修改或删除" ${st.running ? 'disabled' : ''}>${App.esc(fmtDur(p.ms))}</button>`
+        )
+        .join('')
 
       // 控制按钮
       const main = root.querySelector('#tm-main')
@@ -159,44 +212,66 @@
       this.renderTasks()
     },
 
-    // 倒计时「新增」：自定义时长与备注（备注覆盖环形下方的「倒计时」文字）
-    openCustomCountdown() {
+    // 「新增」（preset 为空）或右键「修改」倒计时项：时长精确到毫秒，备注覆盖环形下方的「倒计时」文字；
+    // 新增的时工会保存进时长项列表
+    openCustomCountdown(preset) {
       const st = this.st
       if (!st || st.mode !== 'countdown' || st.running) return
-      const min0 = Math.floor(st.durationMs / 60_000)
-      const sec0 = Math.round((st.durationMs % 60_000) / 1000)
+      const cur = preset ? preset.ms : st.durationMs || 25 * 60_000
+      const min0 = Math.floor(cur / 60_000)
+      const sec0 = Math.floor((cur % 60_000) / 1000)
+      const ms0 = cur % 1000
+      const label0 = preset ? preset.label || '' : st.label || ''
       const body = App.el(`
         <div>
           <div class="form-row"><label>时长</label>
             <div style="display:flex;gap:8px;align-items:center">
-              <input class="input" id="fm-cd-min" type="number" min="0" max="599" step="1" value="${min0}" style="width:84px">
+              <input class="input" id="fm-cd-min" type="number" min="0" max="599" step="1" value="${min0}" style="width:72px">
               <span class="text-2">分</span>
-              <input class="input" id="fm-cd-sec" type="number" min="0" max="59" step="1" value="${sec0}" style="width:84px">
+              <input class="input" id="fm-cd-sec" type="number" min="0" max="59" step="1" value="${sec0}" style="width:72px">
               <span class="text-2">秒</span>
+              <input class="input" id="fm-cd-ms" type="number" min="0" max="999" step="1" value="${ms0}" style="width:84px">
+              <span class="text-2">毫秒</span>
             </div>
           </div>
           <div class="form-row"><label>备注</label>
-            <input class="input" id="fm-cd-label" maxlength="12" placeholder="留空则显示「倒计时」" value="${App.esc(st.label || '')}">
+            <input class="input" id="fm-cd-label" maxlength="12" placeholder="留空则显示「倒计时」" value="${App.esc(label0)}">
           </div>
+          ${preset ? '' : '<div class="text-2" style="font-size:12px;margin-top:-4px">保存后加入上方时长项，右键可修改或删除</div>'}
         </div>`)
-      App.modal({
-        title: '自定义倒计时',
-        body,
-        actions: [
-          {
-            label: '保存',
-            onClick: (close) => {
-              const min = Math.max(0, Math.floor(+body.querySelector('#fm-cd-min').value || 0))
-              const sec = Math.max(0, Math.floor(+body.querySelector('#fm-cd-sec').value || 0))
-              const ms = min * 60_000 + sec * 1000
-              if (ms <= 0) return App.toast({ title: '请输入倒计时时长' })
-              timeAPI.timer.control('countdownDuration', ms)
-              timeAPI.timer.control('countdownLabel', body.querySelector('#fm-cd-label').value.trim() || null)
-              close()
-            },
+      const actions = [
+        {
+          label: '保存',
+          onClick: (close) => {
+            const min = Math.max(0, Math.floor(+body.querySelector('#fm-cd-min').value || 0))
+            const sec = Math.max(0, Math.floor(+body.querySelector('#fm-cd-sec').value || 0))
+            const msPart = Math.max(0, Math.floor(+body.querySelector('#fm-cd-ms').value || 0))
+            const ms = min * 60_000 + sec * 1000 + msPart
+            if (ms <= 0) return App.toast({ title: '请输入倒计时时长' })
+            const label = body.querySelector('#fm-cd-label').value.trim()
+            timeAPI.timer.control('countdownDuration', ms)
+            timeAPI.timer.control('countdownLabel', label || null)
+            if (preset) {
+              removePreset(preset.ms)
+              upsertPreset(ms, label)
+            } else if (!upsertPreset(ms, label)) {
+              App.toast({ title: '时长项最多保存 12 个' })
+            }
+            close()
           },
-        ],
-      })
+        },
+      ]
+      if (preset) {
+        actions.unshift({
+          label: '删除',
+          class: 'btn-danger',
+          onClick: (close) => {
+            removePreset(preset.ms)
+            close()
+          },
+        })
+      }
+      App.modal({ title: preset ? '修改倒计时项' : '自定义倒计时', body, actions })
     },
 
     renderTasks() {
