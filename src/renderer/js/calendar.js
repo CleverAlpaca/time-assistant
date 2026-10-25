@@ -179,16 +179,19 @@
           ...Array(Math.min(evCount, 3)).fill('<span class="cal-dot" style="background:var(--accent)"></span>'),
           ...Array(Math.min(tdCount, 2)).fill('<span class="cal-dot" style="background:var(--purple)"></span>'),
         ].join('')
-        // 农历/节气/节日：节日(红) > 节气(紫) > 农历日(灰)
+        // 农历/节气/节日：节日(红) > 节气(紫) > 农历日(灰)；法定节假日角标：休(红)/班(橙)
         const li = Lunar.dayInfo(key)
         const lunarCls = li.type === 'festival' ? ' festival' : li.type === 'term' ? ' term' : ''
+        const hol = Lunar.holidayOf(key)
+        const holBadge = hol ? `<span class="cal-hol ${hol}">${hol === 'rest' ? '休' : '班'}</span>` : ''
         html += `
-          <div class="cal-day${other ? ' other' : ''}${key === todayKey ? ' today' : ''}${key === this.selected ? ' selected' : ''}" data-date="${key}" ${heat}>
+          <div class="cal-day${other ? ' other' : ''}${key === todayKey ? ' today' : ''}${key === this.selected ? ' selected' : ''}${hol ? ' has-hol' : ''}" data-date="${key}" ${heat}>
             <div class="cal-top">
               <div class="cal-num">${d.getDate()}</div>
               ${li.label ? `<span class="cal-lunar${lunarCls}">${li.label}</span>` : ''}
             </div>
             <div class="cal-dots">${dots}</div>
+            ${holBadge}
           </div>`
       }
       this.root.querySelector('#cal-grid').innerHTML = html
@@ -239,10 +242,15 @@
       const lunarLine = li.lunarFull
         ? `${li.lunarFull}${li.term && li.type !== 'term' ? ` · ${li.term}` : ''}${li.festival ? ` · <b class="cal-panel-festival">${li.festival}</b>` : ''}`
         : ''
+      const hol = Lunar.holidayOf(key)
+      const holLine = hol
+        ? `<div class="cal-panel-hol ${hol}">${hol === 'rest' ? '法定休假日' : '调休上班日'}</div>`
+        : ''
 
       panel.innerHTML = `
         <div class="cal-panel-date">${dayName} · 周${wd}</div>
         ${lunarLine ? `<div class="cal-panel-lunar">${lunarLine}</div>` : ''}
+        ${holLine}
         <div class="cal-panel-section"><h4>日程</h4>${eventHtml}</div>
         <div class="cal-panel-section"><h4>到期待办</h4>${todoHtml}</div>
         <div class="cal-panel-section">

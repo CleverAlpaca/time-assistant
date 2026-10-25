@@ -57,6 +57,47 @@
     '7-15': '中元节', '8-15': '中秋节', '9-9': '重阳节', '12-8': '腊八节', '12-23': '小年',
   }
 
+  // 法定节假日（国务院办公厅年度通知原文核实，逐年公布、无法用公式推算）
+  // rest = 放假日（含调休借来的连休天），work = 调休上班日
+  // 2025：国办发明电〔2024〕8号；2026：国办发明电〔2025〕7号（gov.cn 公报原文）
+  const HOLIDAYS = {
+    2025: {
+      rest: [
+        '01-01',
+        '01-28', '01-29', '01-30', '01-31', '02-01', '02-02', '02-03', '02-04',
+        '04-04', '04-05', '04-06',
+        '05-01', '05-02', '05-03', '05-04', '05-05',
+        '05-31', '06-01', '06-02',
+        '10-01', '10-02', '10-03', '10-04', '10-05', '10-06', '10-07', '10-08',
+      ],
+      work: ['01-26', '02-08', '04-27', '09-28', '10-11'],
+    },
+    2026: {
+      rest: [
+        '01-01', '01-02', '01-03',
+        '02-15', '02-16', '02-17', '02-18', '02-19', '02-20', '02-21', '02-22', '02-23',
+        '04-04', '04-05', '04-06',
+        '05-01', '05-02', '05-03', '05-04', '05-05',
+        '06-19', '06-20', '06-21',
+        '09-25', '09-26', '09-27',
+        '10-01', '10-02', '10-03', '10-04', '10-05', '10-06', '10-07',
+      ],
+      work: ['01-04', '02-14', '02-28', '05-09', '09-20', '10-10'],
+    },
+  }
+
+  /** 某公历日期的法定节假日状态：'rest' 放假 | 'work' 调休上班 | null 普通日 */
+  function holidayOf(dateKey) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey || '')
+    if (!m) return null
+    const y = HOLIDAYS[+m[1]]
+    if (!y) return null
+    const md = m[2] + '-' + m[3]
+    if (y.rest.includes(md)) return 'rest'
+    if (y.work.includes(md)) return 'work'
+    return null
+  }
+
   const info = (y) => LUNAR_INFO[y - 1900]
   const leapMonthOf = (y) => info(y) & 0xf
   const leapDaysOf = (y) => (leapMonthOf(y) ? ((info(y) & 0x10000) ? 30 : 29) : 0)
@@ -177,8 +218,8 @@
     }
   }
 
-  global.Lunar = { solar2lunar, termOf, dayInfo, TERMS }
+  global.Lunar = { solar2lunar, termOf, dayInfo, holidayOf, TERMS }
 
   // node 环境下暴露用于锚点测试
-  if (typeof module !== 'undefined' && module.exports) module.exports = { solar2lunar, termOf, dayInfo }
+  if (typeof module !== 'undefined' && module.exports) module.exports = { solar2lunar, termOf, dayInfo, holidayOf }
 })(typeof window !== 'undefined' ? window : globalThis)
