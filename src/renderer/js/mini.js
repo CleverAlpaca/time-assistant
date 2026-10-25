@@ -3,20 +3,22 @@
   const $ = (s) => document.querySelector(s)
   const pad = (n) => String(n).padStart(2, '0')
 
-  function fmt(ms) {
+  function fmt(ms, centis) {
     const x = Math.max(0, Math.floor(ms))
     const sec = Math.floor(x / 1000)
     const h = Math.floor(sec / 3600)
     const m = Math.floor((sec % 3600) / 60)
     const s = sec % 60
-    return { main: h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`, ms: String(x % 1000).padStart(3, '0') }
+    const main = h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
+    // 计时器精确到百分秒；番茄钟/倒计时精确到秒
+    return centis ? { main, frac: '.' + String(Math.floor((x % 1000) / 10)).padStart(2, '0') } : { main, frac: '' }
   }
 
   function render(st) {
     const isStopwatch = st.mode === 'stopwatch'
     const ms = isStopwatch ? st.elapsedMs : st.remainingMs
-    const f = fmt(ms)
-    $('#mini-time').innerHTML = `${f.main}<span style="font-size:0.5em">.${f.ms}</span>`
+    const f = fmt(ms, st.mode === 'stopwatch')
+    $('#mini-time').innerHTML = f.frac ? `${f.main}<span style="font-size:0.5em">${f.frac}</span>` : f.main
     const name =
       st.mode === 'pomodoro'
         ? st.phase === 'focus'

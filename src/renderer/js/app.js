@@ -151,10 +151,15 @@
           const cls = 'sb-timer-item' + (it.running ? '' : ' paused') + (isBreak ? ' is-break' : '') + (st.view === it.mode ? ' current' : '')
           const tip = it.running ? '点击查看此计时' : '已暂停 · 点击查看'
           const x = Math.max(0, Math.floor(it.ms))
+          // 计时器条目精确到百分秒；番茄钟/倒计时精确到秒
+          const timeTxt =
+            it.mode === 'stopwatch'
+              ? `${App.fmtMS(x)}.${String(Math.floor((x % 1000) / 10)).padStart(2, '0')}`
+              : App.fmtMS(x)
           return (
             `<button class="${cls}" data-mode="${it.mode}" title="${tip}">` +
             `<span class="sidebar-timer-label">${App.esc(it.title)}${it.running ? '' : ' ⏸'}</span>` +
-            `<span class="sidebar-timer-time">${App.fmtMS(x)}.${String(x % 1000).padStart(3, '0')}</span>` +
+            `<span class="sidebar-timer-time">${timeTxt}</span>` +
             `</button>`
           )
         })

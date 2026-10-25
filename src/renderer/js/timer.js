@@ -158,9 +158,14 @@
       const isFocusBreak = st.mode === 'pomodoro'
       const ms = isStopwatch ? st.elapsedMs : st.remainingMs
 
-      root.querySelector('#tm-time').innerHTML =
-        `${App.fmtMS(ms)}<span class="ring-ms">.${String(Math.max(0, Math.floor(ms)) % 1000).padStart(3, '0')}</span>`
+      // 计时器精确到百分秒（两位小数）；番茄钟/倒计时精确到秒
       const timeEl = root.querySelector('#tm-time')
+      if (isStopwatch) {
+        const cs = String(Math.floor((Math.max(0, Math.floor(ms)) % 1000) / 10)).padStart(2, '0')
+        timeEl.innerHTML = `${App.fmtMS(ms)}<span class="ring-ms">.${cs}</span>`
+      } else {
+        timeEl.textContent = App.fmtMS(ms)
+      }
       timeEl.classList.toggle('hms', Math.floor(Math.max(0, ms) / 3_600_000) > 0)
       root.querySelector('#tm-sub').textContent = subText(st, st.taskTitle)
       root.querySelector('#tm-time').style.color = st.running ? phaseColor(st) : 'var(--text)'
